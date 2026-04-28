@@ -65,10 +65,23 @@ docs                     Human-facing docs
 pnpm install
 pnpm build
 pnpm test
+pnpm typecheck
 pnpm lint
 ```
 
-The initial scaffold intentionally contains placeholders only. Simulation logic, replay schema, adapters, and CLI behavior land in later issues.
+CI runs the same local quality gates on every push and pull request:
+
+CI uses Node.js 24.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+The initial scaffold includes concrete v0.1 schemas, a validated default arena, and action prompt contracts. Simulation logic, adapters, and CLI behavior land in later issues.
 
 ## Non-goals for v0.1
 
