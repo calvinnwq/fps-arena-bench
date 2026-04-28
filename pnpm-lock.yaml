@@ -28,7 +28,11 @@ importers:
 
   packages/cli: {}
 
-  packages/contracts: {}
+  packages/contracts:
+    dependencies:
+      '@fps-arena-bench/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/core: {}
 
