@@ -1,3 +1,7 @@
 # Configs
 
-Match configs should pin map version/hash, seed, contenders, prompt/schema/ruleset versions, timeout budgets, fallback policy, and debug capture settings.
+Match configs use `schemaVersion` `fps-arena-bench.schema.v0.1` and should pin map version/hash, seed, contenders, ruleset version, timeout budgets, fallback policy, and debug capture settings.
+
+Required fields are `schemaVersion`, `id`, `rulesetVersion`, `map`, `seed`, `maxTicks`, `contenders`, `actionTimeoutMs`, `invalidActionPolicy`, and `capture`.
+
+`id`, `rulesetVersion`, `map.id`, and `map.version` must be non-empty strings. `map` contains `id`, `version`, and a `sha256:<64 lowercase hex digest>` hash for the map file. `seed` must be a nonnegative integer; `maxTicks` and `actionTimeoutMs` must be positive integers. `contenders` must include at least two unique non-empty `id` strings and required non-empty `adapterId` strings, with optional non-empty `displayName`; multiple contenders may reuse the same `adapterId`. `invalidActionPolicy` contains nonnegative integer `maxInvalidActions` and `fallbackAction`, where fallback is either `noop` or `repeat-last-valid`. `capture` contains `safeReplay` and `privateDebug` booleans.

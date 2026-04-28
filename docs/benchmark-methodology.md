@@ -4,8 +4,8 @@ FPS Arena Bench starts as a watchable diagnostic benchmark. Results should be in
 
 MVP outputs should keep these metric families separate:
 
-- tactical outcomes: wins, placements, kills, damage, survival time, pickups
-- reliability: invalid JSON, schema failures, repair attempts, repair success, timeouts, fallback usage
-- latency: average, p50, p95, timeout budget usage
+- tactical outcomes: winner, placements, kills, deaths, damageDealt, damageTaken, survivalTicks, pickupsCollected
+- reliability: invalidJson, schemaFailures, repairAttempts, repairSuccesses, timeouts, fallbackActions
+- latency: averageMs, p50Ms, p95Ms, timeoutBudgetMs
 
 No composite score in MVP.
