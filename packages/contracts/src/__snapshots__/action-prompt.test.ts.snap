@@ -1,0 +1,105 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`action prompt template > renders deterministically from a representative observation fixture 1`] = `
+"Role: tactical controller for FPS Arena Bench.
+Prompt template version: action-prompt.v0.1
+Schema version: fps-arena-bench.schema.v0.1
+Ruleset version: ruleset-v0.1
+
+Objective:
+Choose the single best legal action for this tick. Favor survival, useful damage, pickup timing, and map control without assuming hidden state.
+
+Game rules summary:
+You control one arena-FPS contender for the current tick.
+Use visible players, pickups, walls, score, health, ammo, position, and heading to choose a tactical action.
+Movement directions are unit grid axes where each component is -1, 0, or 1, and move cannot be { "x": 0, "y": 0 }.
+Turning accepts only -90, 0, 90, or 180 degrees.
+Shooting targets a map position. Prefer visible opponents and conserve ammo when no useful target is visible.
+A timeout, invalid JSON, or schema-invalid action counts against reliability and may be replaced by the configured fallback action.
+
+Observation format:
+The observation is a JSON object containing schemaVersion, rulesetVersion, matchId, tick, self, visiblePlayers, visiblePickups, visibleWalls, and score.
+Only visible entities are included. Missing opponent ammo means it was not observed.
+
+Required response:
+Return exactly one JSON object matching the action schema. Do not include chain-of-thought, rationale, markdown, or prose.
+
+Valid action examples:
+{
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
+  "type": "move",
+  "direction": {
+    "x": 1,
+    "y": 0
+  }
+}
+{
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
+  "type": "shoot",
+  "target": {
+    "x": 8,
+    "y": 5
+  }
+}
+{
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
+  "type": "turn",
+  "degrees": 90
+}
+{
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
+  "type": "noop"
+}
+
+Current observation:
+{
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
+  "rulesetVersion": "ruleset-v0.1",
+  "matchId": "action-prompt-dry-run",
+  "tick": 12,
+  "self": {
+    "contenderId": "alpha",
+    "position": {
+      "x": 4,
+      "y": 5
+    },
+    "headingDegrees": 90,
+    "health": 85,
+    "ammo": 7
+  },
+  "visiblePlayers": [
+    {
+      "contenderId": "bravo",
+      "position": {
+        "x": 8,
+        "y": 5
+      },
+      "headingDegrees": 270,
+      "health": 65
+    }
+  ],
+  "visiblePickups": [
+    {
+      "id": "health-mid",
+      "type": "health",
+      "position": {
+        "x": 8,
+        "y": 8
+      }
+    }
+  ],
+  "visibleWalls": [
+    {
+      "id": "cover-north",
+      "x": 7,
+      "y": 6,
+      "width": 2,
+      "height": 1
+    }
+  ],
+  "score": {
+    "alpha": 1,
+    "bravo": 0
+  }
+}"
+`;
