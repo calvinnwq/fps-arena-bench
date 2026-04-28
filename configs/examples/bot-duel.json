@@ -1,0 +1,6 @@
+{
+  "id": "bot-duel-placeholder",
+  "description": "Placeholder config. Real MatchConfigSchema lands in M1-03.",
+  "map": "maps/default-arena.json",
+  "contenders": ["random-bot", "chaser-bot"]
+}

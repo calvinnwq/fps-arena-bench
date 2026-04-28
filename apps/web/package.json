@@ -1,0 +1,13 @@
+{
+  "name": "@fps-arena-bench/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local replay viewer and future dashboard for FPS Arena Bench.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run --passWithNoTests",
+    "lint": "tsc -b --pretty false"
+  }
+}

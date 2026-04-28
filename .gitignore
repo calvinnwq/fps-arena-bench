@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+replays/*
+!replays/.gitkeep
+*.private.jsonl
+debug.private.jsonl
+
+# TypeScript build info
+*.tsbuildinfo

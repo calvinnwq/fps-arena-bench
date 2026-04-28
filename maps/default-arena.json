@@ -1,0 +1,10 @@
+{
+  "id": "default-arena",
+  "version": "0.0.0-placeholder",
+  "description": "Placeholder symmetric arena. Real map schema and validation land in M1-07.",
+  "width": 16,
+  "height": 16,
+  "spawns": [],
+  "walls": [],
+  "pickups": []
+}
