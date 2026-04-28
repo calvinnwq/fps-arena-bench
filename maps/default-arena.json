@@ -1,10 +1,36 @@
 {
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
   "id": "default-arena",
-  "version": "0.0.0-placeholder",
-  "description": "Placeholder symmetric arena. Real map schema and validation land in M1-07.",
+  "version": "0.1.0",
   "width": 16,
   "height": 16,
-  "spawns": [],
-  "walls": [],
-  "pickups": []
+  "spawns": [
+    {
+      "id": "alpha-spawn",
+      "contenderSlot": 0,
+      "position": { "x": 2, "y": 8 },
+      "headingDegrees": 0
+    },
+    {
+      "id": "bravo-spawn",
+      "contenderSlot": 1,
+      "position": { "x": 14, "y": 8 },
+      "headingDegrees": 180
+    }
+  ],
+  "walls": [
+    { "id": "northwest-cover", "x": 5, "y": 5, "width": 2, "height": 2 },
+    { "id": "northeast-cover", "x": 9, "y": 5, "width": 2, "height": 2 },
+    { "id": "southwest-cover", "x": 5, "y": 9, "width": 2, "height": 2 },
+    { "id": "southeast-cover", "x": 9, "y": 9, "width": 2, "height": 2 }
+  ],
+  "pickups": [
+    { "id": "health-mid", "type": "health", "position": { "x": 8, "y": 8 }, "respawnTicks": 60 },
+    { "id": "ammo-west", "type": "ammo", "position": { "x": 4, "y": 8 }, "respawnTicks": 40 },
+    { "id": "ammo-east", "type": "ammo", "position": { "x": 12, "y": 8 }, "respawnTicks": 40 }
+  ],
+  "symmetry": {
+    "kind": "rotational-180",
+    "notes": "Two-player hand-authored baseline. Slots spawn at mirrored east/west positions, face inward, and share rotationally paired cover and side ammo around a central health pickup to reduce first-spawn bias."
+  }
 }
