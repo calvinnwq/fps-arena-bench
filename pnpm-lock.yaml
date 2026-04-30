@@ -25,7 +25,17 @@ importers:
 
   packages/adapters: {}
 
-  packages/bots: {}
+  packages/bots:
+    dependencies:
+      '@fps-arena-bench/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@fps-arena-bench/core':
+        specifier: workspace:*
+        version: link:../core
+      '@fps-arena-bench/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/cli: {}
 

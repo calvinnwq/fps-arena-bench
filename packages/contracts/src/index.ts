@@ -1,6 +1,15 @@
+import type { Action, AdapterMetadata, Observation } from '@fps-arena-bench/schemas';
+
+export interface ActionRequest {
+  readonly observation: Observation;
+  readonly contenderId: string;
+  readonly tick: number;
+  readonly signal?: AbortSignal;
+}
+
 export interface ActionProvider {
-  readonly id: string;
-  readonly kind: 'bot' | 'mock' | 'local' | 'harness' | 'api';
+  readonly metadata: AdapterMetadata;
+  decide(request: ActionRequest): Promise<Action> | Action;
 }
 
 export {
