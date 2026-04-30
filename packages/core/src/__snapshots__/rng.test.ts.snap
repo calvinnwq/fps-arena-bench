@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createRng > matches a frozen golden sequence for stable replay metadata 1`] = `
+[
+  90802087,
+  2860920651,
+  3349951739,
+  3176491012,
+  459804437,
+  2151861270,
+  626884110,
+  1562183176,
+]
+`;
