@@ -38,6 +38,39 @@ class ThrowingBot implements ActionProvider {
   }
 }
 
+class InvalidAfterValidBot implements ActionProvider {
+  readonly metadata: AdapterMetadata = {
+    schemaVersion: SCHEMA_VERSION,
+    adapterId: 'invalid-after-valid-bot',
+    kind: 'bot',
+    displayName: 'Invalid After Valid Bot',
+    supportedActionSchema: SCHEMA_VERSION,
+  };
+  private calls = 0;
+
+  decide(_request: ActionRequest): Action {
+    this.calls += 1;
+    if (this.calls === 1) {
+      return { schemaVersion: SCHEMA_VERSION, type: 'move', direction: { x: 1, y: 0 } };
+    }
+    return { schemaVersion: SCHEMA_VERSION, type: 'move', direction: { x: 0, y: 0 } } as Action;
+  }
+}
+
+class InvalidFirstBot implements ActionProvider {
+  readonly metadata: AdapterMetadata = {
+    schemaVersion: SCHEMA_VERSION,
+    adapterId: 'invalid-first-bot',
+    kind: 'bot',
+    displayName: 'Invalid First Bot',
+    supportedActionSchema: SCHEMA_VERSION,
+  };
+
+  decide(_request: ActionRequest): Action {
+    return { schemaVersion: SCHEMA_VERSION, type: 'move', direction: { x: 0, y: 0 } } as Action;
+  }
+}
+
 describe('runBotMatch', () => {
   it('runs to a terminal state without schema violations using only bots', async () => {
     const map = buildBotTestMap();
@@ -113,6 +146,61 @@ describe('runBotMatch', () => {
     const result = await runBotMatch({ config, map, providers });
     expect(result.providerErrors).toBeGreaterThan(0);
     expect(result.schemaViolations).toBe(0);
+  });
+
+  it('repeats the last valid action when configured as the fallback policy', async () => {
+    const map = buildBotTestMap();
+    const config = {
+      ...buildBotTestMatchConfig({
+        mapId: map.id,
+        mapVersion: map.version,
+        seed: 1,
+        maxTicks: 2,
+      }),
+      invalidActionPolicy: { maxInvalidActions: 3, fallbackAction: 'repeat-last-valid' as const },
+    };
+    const providers = new Map<string, ActionProvider>([
+      ['alpha', new InvalidAfterValidBot()],
+      ['bravo', new StaticBot()],
+    ]);
+
+    const result = await runBotMatch({ config, map, providers });
+
+    expect(result.schemaViolations).toBe(1);
+    expect(result.ticks[0]?.inputs.find((input) => input.contenderId === 'alpha')?.action).toEqual({
+      schemaVersion: SCHEMA_VERSION,
+      type: 'move',
+      direction: { x: 1, y: 0 },
+    });
+    expect(result.ticks[1]?.inputs.find((input) => input.contenderId === 'alpha')?.action).toEqual({
+      schemaVersion: SCHEMA_VERSION,
+      type: 'move',
+      direction: { x: 1, y: 0 },
+    });
+  });
+
+  it('uses noop for repeat-last-valid when no prior valid action exists', async () => {
+    const map = buildBotTestMap();
+    const config = {
+      ...buildBotTestMatchConfig({
+        mapId: map.id,
+        mapVersion: map.version,
+        seed: 1,
+        maxTicks: 1,
+      }),
+      invalidActionPolicy: { maxInvalidActions: 3, fallbackAction: 'repeat-last-valid' as const },
+    };
+    const providers = new Map<string, ActionProvider>([
+      ['alpha', new InvalidFirstBot()],
+      ['bravo', new StaticBot()],
+    ]);
+
+    const result = await runBotMatch({ config, map, providers });
+
+    expect(result.schemaViolations).toBe(1);
+    expect(result.ticks[0]?.inputs.find((input) => input.contenderId === 'alpha')?.action).toEqual(
+      noopAction(),
+    );
   });
 
   it('throws when a contender has no registered provider', async () => {

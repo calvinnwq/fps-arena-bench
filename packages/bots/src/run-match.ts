@@ -47,9 +47,23 @@ const NOOP_FALLBACK = (): Action => ({
   type: 'noop',
 });
 
+const defaultFallbackAction = (
+  config: MatchConfig,
+  contenderId: string,
+  lastValidActions: ReadonlyMap<string, Action>,
+): Action => {
+  if (config.invalidActionPolicy.fallbackAction === 'repeat-last-valid') {
+    return lastValidActions.get(contenderId) ?? NOOP_FALLBACK();
+  }
+  return NOOP_FALLBACK();
+};
+
 export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchResult> {
   const validate = options.validate ?? validateAction;
-  const onError = options.onProviderError ?? NOOP_FALLBACK;
+  const lastValidActions = new Map<string, Action>();
+  const onError =
+    options.onProviderError ??
+    ((contenderId: string) => defaultFallbackAction(options.config, contenderId, lastValidActions));
   const state = createMatchState({ config: options.config, map: options.map });
 
   for (const contender of options.config.contenders) {
@@ -90,6 +104,7 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       let action: Action;
       try {
         action = validate(candidate);
+        lastValidActions.set(player.contenderId, action);
       } catch (error) {
         schemaViolations += 1;
         action = onError(player.contenderId, error);
