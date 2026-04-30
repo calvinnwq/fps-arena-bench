@@ -9,6 +9,8 @@ export default defineConfig({
         .pathname,
       '@fps-arena-bench/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
       '@fps-arena-bench/bots': new URL('./packages/bots/src/index.ts', import.meta.url).pathname,
+      '@fps-arena-bench/replay': new URL('./packages/replay/src/index.ts', import.meta.url)
+        .pathname,
     },
   },
   test: {
