@@ -11,5 +11,8 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
     "lint": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@fps-arena-bench/schemas": "workspace:*"
   }
 }

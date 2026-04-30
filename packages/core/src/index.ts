@@ -31,3 +31,30 @@ export type {
   TurningConstants,
   WeaponConstants,
 } from './ruleset.js';
+
+export { createInitialStats, createMatchState, findPlayer, livePlayers } from './state.js';
+export type {
+  ContenderStats,
+  CreateMatchStateOptions,
+  EndReason,
+  MatchState,
+  PickupState,
+  PickupType,
+  PlayerState,
+  Position,
+} from './state.js';
+
+export { canonicalizeMatchState, hashMatchState } from './hash.js';
+
+export {
+  cardinalDirection,
+  isInFieldOfView,
+  isLineOfSightClear,
+  segmentCrossesOpenRectangle,
+} from './visibility.js';
+export type { AxisAlignedRectangle } from './visibility.js';
+
+export { generateObservation, generateObservations } from './observation.js';
+
+export { applyTick } from './engine.js';
+export type { AcceptedActionInput, TickEvent, TickResult } from './engine.js';
