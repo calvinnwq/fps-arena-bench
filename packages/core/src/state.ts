@@ -4,6 +4,7 @@ import type { Rng } from './rng.js';
 import { createRng } from './rng.js';
 import type { RulesetConstants } from './ruleset.js';
 import { RULESET_V0_1 } from './ruleset.js';
+import { cardinalDirection } from './visibility.js';
 
 export interface Position {
   readonly x: number;
@@ -104,6 +105,7 @@ export function createMatchState({
         `Map ${map.id} does not define a spawn for contender slot ${slot} (id=${contender.id}).`,
       );
     }
+    cardinalDirection(spawn.headingDegrees);
 
     players.push({
       contenderId: contender.id,
