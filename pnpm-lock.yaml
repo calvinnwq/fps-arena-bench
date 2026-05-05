@@ -21,7 +21,17 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.12.2)
 
-  apps/web: {}
+  apps/web:
+    dependencies:
+      '@fps-arena-bench/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@fps-arena-bench/replay':
+        specifier: workspace:*
+        version: link:../../packages/replay
+      '@fps-arena-bench/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
 
   packages/adapters: {}
 
