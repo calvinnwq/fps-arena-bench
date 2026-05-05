@@ -31,6 +31,7 @@ export interface BotMatchOptions {
 export interface BotMatchTickRecord {
   readonly tick: number;
   readonly inputs: readonly AcceptedActionInput[];
+  readonly latencyMsByContenderId: ReadonlyMap<string, number>;
   readonly result: TickResult;
 }
 
@@ -40,6 +41,7 @@ export interface BotMatchResult {
   readonly events: readonly TickEvent[];
   readonly schemaViolations: number;
   readonly providerErrors: number;
+  readonly timeouts: number;
 }
 
 const NOOP_FALLBACK = (): Action => ({
@@ -56,6 +58,68 @@ const defaultFallbackAction = (
     return lastValidActions.get(contenderId) ?? NOOP_FALLBACK();
   }
   return NOOP_FALLBACK();
+};
+
+class ProviderTimeoutError extends Error {
+  constructor() {
+    super('ActionProvider decision timed out.');
+  }
+}
+
+class ProviderDecisionError extends Error {
+  readonly latencyMs: number;
+  readonly originalError: unknown;
+
+  constructor(error: unknown, latencyMs: number) {
+    super(error instanceof Error ? error.message : String(error));
+    this.latencyMs = latencyMs;
+    this.originalError = error;
+  }
+}
+
+const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLike<T> =>
+  typeof (value as PromiseLike<T>).then === 'function';
+
+const requestProviderAction = async (
+  provider: ActionProvider,
+  request: Parameters<ActionProvider['decide']>[0],
+  timeoutMs: number,
+): Promise<{ candidate: unknown; latencyMs: number; timedOut: boolean }> => {
+  const controller = new AbortController();
+  const startedAt = performance.now();
+  let decision: ReturnType<ActionProvider['decide']>;
+  try {
+    decision = provider.decide({ ...request, signal: controller.signal });
+  } catch (error) {
+    throw new ProviderDecisionError(error, Math.max(0, performance.now() - startedAt));
+  }
+
+  if (!isPromiseLike(decision)) {
+    return { candidate: decision, latencyMs: 0, timedOut: false };
+  }
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const candidate = await Promise.race([
+      decision,
+      new Promise<never>((_resolve, reject) => {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+          reject(new ProviderTimeoutError());
+        }, timeoutMs);
+      }),
+    ]);
+    return { candidate, latencyMs: Math.max(0, performance.now() - startedAt), timedOut: false };
+  } catch (error) {
+    if (error instanceof ProviderTimeoutError) {
+      return { candidate: undefined, latencyMs: timeoutMs, timedOut: true };
+    }
+    throw new ProviderDecisionError(error, Math.max(0, performance.now() - startedAt));
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
 };
 
 export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchResult> {
@@ -76,11 +140,13 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
   const events: TickEvent[] = [];
   let schemaViolations = 0;
   let providerErrors = 0;
+  let timeouts = 0;
 
   const limit = options.maxTicks ?? options.config.maxTicks;
 
   while (state.status === 'in-progress' && state.tick < limit) {
     const inputs: AcceptedActionInput[] = [];
+    const latencyMsByContenderId = new Map<string, number>();
     for (const player of state.players) {
       if (!player.alive) {
         continue;
@@ -92,14 +158,31 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
       const observation = generateObservation(state, player.contenderId);
       let candidate: unknown;
       try {
-        candidate = await provider.decide({
-          observation,
-          contenderId: player.contenderId,
-          tick: state.tick,
-        });
+        const decision = await requestProviderAction(
+          provider,
+          {
+            observation,
+            contenderId: player.contenderId,
+            tick: state.tick,
+          },
+          options.config.actionTimeoutMs,
+        );
+        latencyMsByContenderId.set(player.contenderId, decision.latencyMs);
+        if (decision.timedOut) {
+          timeouts += 1;
+          candidate = onError(player.contenderId, new ProviderTimeoutError());
+        } else {
+          candidate = decision.candidate;
+        }
       } catch (error) {
         providerErrors += 1;
-        candidate = onError(player.contenderId, error);
+        if (error instanceof ProviderDecisionError) {
+          latencyMsByContenderId.set(player.contenderId, error.latencyMs);
+          candidate = onError(player.contenderId, error.originalError);
+        } else {
+          latencyMsByContenderId.set(player.contenderId, 0);
+          candidate = onError(player.contenderId, error);
+        }
       }
       let action: Action;
       try {
@@ -113,11 +196,11 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
     }
 
     const result = applyTick(state, inputs);
-    ticks.push({ tick: state.tick - 1, inputs, result });
+    ticks.push({ tick: state.tick - 1, inputs, latencyMsByContenderId, result });
     for (const event of result.events) {
       events.push(event);
     }
   }
 
-  return { state, ticks, events, schemaViolations, providerErrors };
+  return { state, ticks, events, schemaViolations, providerErrors, timeouts };
 }

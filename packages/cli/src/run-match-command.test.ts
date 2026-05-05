@@ -5,10 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import type { ActionProvider, ActionRequest } from '@fps-arena-bench/contracts';
 import {
+  SCHEMA_VERSION,
   validateMatchConfig,
   validateMap,
   validateReplaySafeArtifact,
+  type Action,
+  type AdapterMetadata,
   type ResultSummary,
 } from '@fps-arena-bench/schemas';
 
@@ -19,6 +23,21 @@ const defaultMapPath = join(repoRoot, 'maps/default-arena.json');
 const defaultConfigPath = join(repoRoot, 'configs/examples/bot-duel.json');
 
 const makeTempDir = (label: string): string => mkdtempSync(join(tmpdir(), `fps-cli-${label}-`));
+
+class DelayedBot implements ActionProvider {
+  readonly metadata: AdapterMetadata = {
+    schemaVersion: SCHEMA_VERSION,
+    adapterId: 'delayed-bot',
+    kind: 'bot',
+    displayName: 'Delayed Bot',
+    supportedActionSchema: SCHEMA_VERSION,
+  };
+
+  async decide(_request: ActionRequest): Promise<Action> {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    return { schemaVersion: SCHEMA_VERSION, type: 'noop' };
+  }
+}
 
 describe('runMatchCommand', () => {
   it('runs a baseline bot duel and writes a safe replay artifact and result summary', async () => {
@@ -73,6 +92,28 @@ describe('runMatchCommand', () => {
     } finally {
       rmSync(outDirA, { recursive: true, force: true });
       rmSync(outDirB, { recursive: true, force: true });
+    }
+  });
+
+  it('records provider decision latency in the replay artifact', async () => {
+    const outDir = makeTempDir('latency');
+    try {
+      const summary = await runMatchCommand({
+        configPath: defaultConfigPath,
+        mapPath: defaultMapPath,
+        outDir,
+        providerOverrides: {
+          'random-bot': () => new DelayedBot(),
+        },
+      });
+
+      const replay = validateReplaySafeArtifact(
+        JSON.parse(readFileSync(summary.replayPath, 'utf8')) as unknown,
+      );
+      expect(replay.acceptedActions.some((action) => action.latencyMs > 0)).toBe(true);
+      expect(replay.result.latency.averageMs).toBeGreaterThan(0);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
     }
   });
 

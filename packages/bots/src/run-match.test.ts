@@ -71,6 +71,24 @@ class InvalidFirstBot implements ActionProvider {
   }
 }
 
+class NeverResolvingBot implements ActionProvider {
+  readonly metadata: AdapterMetadata = {
+    schemaVersion: SCHEMA_VERSION,
+    adapterId: 'never-resolving-bot',
+    kind: 'bot',
+    displayName: 'Never Resolving Bot',
+    supportedActionSchema: SCHEMA_VERSION,
+  };
+  aborted = false;
+
+  decide(request: ActionRequest): Promise<Action> {
+    request.signal?.addEventListener('abort', () => {
+      this.aborted = true;
+    });
+    return new Promise<Action>(() => {});
+  }
+}
+
 describe('runBotMatch', () => {
   it('runs to a terminal state without schema violations using only bots', async () => {
     const map = buildBotTestMap();
@@ -146,6 +164,34 @@ describe('runBotMatch', () => {
     const result = await runBotMatch({ config, map, providers });
     expect(result.providerErrors).toBeGreaterThan(0);
     expect(result.schemaViolations).toBe(0);
+  });
+
+  it('times out providers and substitutes the fallback action', async () => {
+    const map = buildBotTestMap();
+    const config = {
+      ...buildBotTestMatchConfig({
+        mapId: map.id,
+        mapVersion: map.version,
+        seed: 1,
+        maxTicks: 1,
+      }),
+      actionTimeoutMs: 1,
+    };
+    const slowBot = new NeverResolvingBot();
+    const providers = new Map<string, ActionProvider>([
+      ['alpha', slowBot],
+      ['bravo', new StaticBot()],
+    ]);
+
+    const result = await runBotMatch({ config, map, providers });
+
+    expect(result.timeouts).toBe(1);
+    expect(result.providerErrors).toBe(0);
+    expect(slowBot.aborted).toBe(true);
+    expect(result.ticks[0]?.latencyMsByContenderId.get('alpha')).toBe(1);
+    expect(result.ticks[0]?.inputs.find((input) => input.contenderId === 'alpha')?.action).toEqual(
+      noopAction(),
+    );
   });
 
   it('repeats the last valid action when configured as the fallback policy', async () => {

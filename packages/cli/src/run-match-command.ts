@@ -145,11 +145,13 @@ export async function runMatchCommand(
     recorder.recordTick({
       tick: tick.tick,
       inputs: tick.inputs,
+      latencyMsByContenderId: tick.latencyMsByContenderId,
       result: tick.result,
     });
   }
 
-  const fallbackActions = matchOutcome.providerErrors + matchOutcome.schemaViolations;
+  const fallbackActions =
+    matchOutcome.providerErrors + matchOutcome.schemaViolations + matchOutcome.timeouts;
   const artifact: ReplaySafeArtifact = recorder.build({
     state: matchOutcome.state,
     reliability: {
@@ -157,7 +159,7 @@ export async function runMatchCommand(
       schemaFailures: matchOutcome.schemaViolations,
       repairAttempts: 0,
       repairSuccesses: 0,
-      timeouts: 0,
+      timeouts: matchOutcome.timeouts,
       fallbackActions,
     },
   });
