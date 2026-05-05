@@ -14,6 +14,8 @@ Adapter authors should use `renderActionPrompt` from `@fps-arena-bench/contracts
 
 The prompt requires exactly one JSON action object and no chain-of-thought, rationale, markdown, or prose. Use `actionPromptDryRunObservations` for offline smoke tests of prompt rendering and response parsing.
 
+Programmatic adapters implement `ActionProvider` from `@fps-arena-bench/contracts`: expose `metadata: AdapterMetadata` and a sync or async `decide(request: ActionRequest)` method returning an `Action`. `ActionRequest` contains `observation`, `contenderId`, `tick`, and optional `signal` for cancellation.
+
 Initial adapter order:
 
 1. baseline bots and mock adapter
@@ -22,5 +24,7 @@ Initial adapter order:
 4. Codex CLI and OpenCode CLI harness adapters
 
 Harness adapters must use isolated working directories, explicit environment allowlists, output caps, timeouts, redaction, and safe replay metadata. They must not persist OAuth tokens, raw credentials, or local auth paths.
+
+The bot-only CLI currently registers `baseline-random`/`random-bot` for uniformly random legal actions, `baseline-chaser`/`chaser-bot` for pursuing and shooting visible opponents, and `baseline-pickup-seeker`/`pickup-seeker-bot` for prioritizing visible pickups before opportunistic shots. Use one of those ids in `contenders[].adapterId` for built-in baseline matches.
 
 MVP harness adapters use a cold subprocess per action request. See [ADR 0001: Harness Process Model for MVP](adr/0001-harness-process-model.md) for the lifecycle contract, error taxonomy, cwd/env rules, and future migration path.
