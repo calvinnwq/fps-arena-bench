@@ -18,15 +18,16 @@ export class ArgsError extends Error {}
 const HELP_TEXT = `fps-arena-bench - deterministic local arena FPS bench runner
 
 Usage:
-  fps-arena-bench run --config <path> --map <path> --out <dir>
+  fps-arena-bench run --config|-c <path> --map|-m <path> --out|--out-dir|-o <dir>
                       [--snapshot-interval <ticks>] [--quiet]
-  fps-arena-bench help
+  fps-arena-bench help|--help|-h
 
 Examples:
   fps-arena-bench run \\
-    --config configs/examples/bot-duel.json \\
-    --map maps/default-arena.json \\
-    --out replays/bot-duel
+    -c configs/examples/bot-duel.json \\
+    -m maps/default-arena.json \\
+    -o replays/bot-duel \\
+    -q
 `;
 
 export const helpText = (): string => HELP_TEXT;

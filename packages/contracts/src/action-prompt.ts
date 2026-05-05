@@ -38,7 +38,7 @@ const ACTION_EXAMPLES = [
 
 const visibleOpponentObservation = {
   schemaVersion: SCHEMA_VERSION,
-  rulesetVersion: 'ruleset-v0.1',
+  rulesetVersion: 'ruleset.v0.1',
   matchId: 'action-prompt-dry-run',
   tick: 12,
   self: {
