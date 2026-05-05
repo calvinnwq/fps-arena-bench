@@ -10,6 +10,7 @@ import { runCli } from './index.js';
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const defaultMapPath = join(repoRoot, 'maps/default-arena.json');
 const defaultConfigPath = join(repoRoot, 'configs/examples/bot-duel.json');
+const mockConfigPath = join(repoRoot, 'configs/examples/mock-duel.json');
 
 const captureStreams = () => {
   const stdoutChunks: string[] = [];
@@ -73,6 +74,26 @@ describe('runCli', () => {
     const stderr = stderrChunks.join('');
     expect(stderr).toMatch(/--config/);
     expect(stderr).toMatch(/Usage:/);
+  });
+
+  it('runs the mock-duel example end-to-end and writes valid replay/result files', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'fps-cli-mock-'));
+    const { io, stdoutChunks } = captureStreams();
+    try {
+      const code = await runCli(
+        ['run', '--config', mockConfigPath, '--map', defaultMapPath, '--out', outDir],
+        io,
+      );
+      expect(code).toBe(0);
+      const summary = stdoutChunks.join('');
+      expect(summary).toMatch(/match: mock-duel/);
+      expect(summary).toMatch(/schemaViolations: 0/);
+      expect(summary).toMatch(/providerErrors: 0/);
+      const written = readdirSync(outDir).sort();
+      expect(written).toEqual(['replay.safe.json', 'result.json']);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
   });
 
   it('returns exit code 1 when the command throws', async () => {

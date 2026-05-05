@@ -10,6 +10,7 @@
     { "path": "../contracts" },
     { "path": "../core" },
     { "path": "../bots" },
-    { "path": "../replay" }
+    { "path": "../replay" },
+    { "path": "../adapters" }
   ]
 }

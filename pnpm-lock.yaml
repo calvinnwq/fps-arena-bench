@@ -60,6 +60,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@fps-arena-bench/adapters':
+        specifier: workspace:*
+        version: link:../adapters
       '@fps-arena-bench/bots':
         specifier: workspace:*
         version: link:../bots

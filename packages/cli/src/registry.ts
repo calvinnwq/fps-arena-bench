@@ -1,5 +1,6 @@
 import type { ActionProvider } from '@fps-arena-bench/contracts';
 import { ChaserBot, PickupSeekerBot, RandomBot } from '@fps-arena-bench/bots';
+import { MockAdapter } from '@fps-arena-bench/adapters';
 
 export interface ProviderFactoryRequest {
   readonly contenderId: string;
@@ -39,6 +40,8 @@ const BUILTIN_FACTORIES: Readonly<Record<string, ProviderFactory>> = {
   'chaser-bot': (request) => new ChaserBot(buildOptions(request)),
   'baseline-pickup-seeker': (request) => new PickupSeekerBot(buildOptions(request)),
   'pickup-seeker-bot': (request) => new PickupSeekerBot(buildOptions(request)),
+  mock: (request) => new MockAdapter(buildOptions(request)),
+  'mock-adapter': (request) => new MockAdapter(buildOptions(request)),
 };
 
 export const BUILTIN_ADAPTER_IDS: readonly string[] = Object.freeze(Object.keys(BUILTIN_FACTORIES));
