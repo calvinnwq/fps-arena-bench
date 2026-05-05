@@ -33,4 +33,15 @@ describe('hashMatchState', () => {
 
     expect(before).not.toBe(after);
   });
+
+  test('hash changes when contender stats change', () => {
+    const map = buildTestMap();
+    const config = buildTestMatchConfig({ mapId: map.id, mapVersion: map.version });
+    const state = createMatchState({ config, map });
+    const before = hashMatchState(state);
+    state.stats.alpha!.damageDealt += 25;
+    const after = hashMatchState(state);
+
+    expect(before).not.toBe(after);
+  });
 });

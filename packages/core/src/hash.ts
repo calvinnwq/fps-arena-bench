@@ -34,6 +34,23 @@ const scoreKey = (score: Record<string, number>): string =>
     .map((id) => `${id}=${String(score[id])}`)
     .join(',');
 
+const statsKey = (stats: MatchState['stats']): string =>
+  Object.keys(stats)
+    .sort()
+    .map((id) => {
+      const contenderStats = stats[id]!;
+      return [
+        id,
+        String(contenderStats.kills),
+        String(contenderStats.deaths),
+        String(contenderStats.damageDealt),
+        String(contenderStats.damageTaken),
+        String(contenderStats.survivalTicks),
+        String(contenderStats.pickupsCollected),
+      ].join('|');
+    })
+    .join(';');
+
 export function canonicalizeMatchState(state: MatchState): string {
   const players = [...state.players]
     .sort((left, right) => left.contenderId.localeCompare(right.contenderId))
@@ -54,6 +71,7 @@ export function canonicalizeMatchState(state: MatchState): string {
     `endReason=${state.endReason ?? ''}`,
     `rng=${rngState}`,
     `score=${scoreKey(state.score)}`,
+    `stats=${statsKey(state.stats)}`,
     `players=${players}`,
     `pickups=${pickups}`,
   ].join('\n');
