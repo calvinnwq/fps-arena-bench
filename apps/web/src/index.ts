@@ -86,3 +86,42 @@ export type {
   SummaryPanelBinding,
   SummaryPanelHost,
 } from './summary-binding.js';
+export {
+  createButtonControl,
+  createCanvasHost,
+  createFileInputControl,
+  createListElement,
+  createRangeControl,
+  createSelectControl,
+  createTextElement,
+  createToggleElement,
+} from './dom-adapters.js';
+export { mountReplayViewerApp } from './app.js';
+export type { MountReplayViewerAppOptions, ReplayViewerApp, ReplayViewerAppHost } from './app.js';
+export {
+  bootstrapReplayViewer,
+  defaultEventFeedRenderer,
+  defaultPlacementRenderer,
+  formatEventFeedItemText,
+  formatPlacementItemText,
+} from './bootstrap.js';
+export type {
+  BootstrapListChildElement,
+  BootstrapListLikeElement,
+  BootstrapReplayViewerElements,
+  BootstrapReplayViewerOptions,
+} from './bootstrap.js';
+export { REPLAY_VIEWER_ELEMENT_IDS, bootReplayViewerFromDocument } from './main.js';
+export type { DocumentLike } from './main.js';
+export type {
+  ButtonLikeElement,
+  CanvasLikeElement,
+  FileInputLikeElement,
+  ListItemRenderer,
+  ListLikeElement,
+  OptionLikeElement,
+  RangeLikeElement,
+  SelectLikeElement,
+  TextLikeElement,
+  ToggleLikeElement,
+} from './dom-adapters.js';

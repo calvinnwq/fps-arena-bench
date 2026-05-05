@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FPS Arena Bench - Replay Viewer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1115;
+        --panel: #161a22;
+        --panel-border: #2a313d;
+        --text: #e8ecf2;
+        --muted: #94a3b8;
+        --accent: #5eead4;
+        --error: #f87171;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        min-height: 100vh;
+      }
+
+      header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      header h1 {
+        font-size: 1.1rem;
+        margin: 0;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      header p {
+        margin: 0.25rem 0 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stage {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-width: 0;
+      }
+
+      .canvas-frame {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        padding: 0.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        background: #0b0d12;
+        border-radius: 4px;
+      }
+
+      .controls {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        padding: 0.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .controls .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        flex: 1 1 auto;
+      }
+
+      .controls button,
+      .controls select,
+      .file-loader input[type='file'] {
+        background: #1f2531;
+        color: var(--text);
+        border: 1px solid var(--panel-border);
+        border-radius: 4px;
+        padding: 0.35rem 0.65rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .controls button[disabled],
+      .controls select[disabled],
+      .controls input[type='range'][disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      input[type='range'] {
+        flex: 1 1 200px;
+        min-width: 120px;
+      }
+
+      .status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .file-loader {
+        background: var(--panel);
+        border: 1px dashed var(--panel-border);
+        border-radius: 8px;
+        padding: 0.75rem;
+        font-size: 0.85rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      aside {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-width: 0;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        padding: 0.75rem;
+      }
+
+      .panel h2 {
+        font-size: 0.95rem;
+        margin: 0 0 0.5rem;
+      }
+
+      .panel dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.25rem 0.75rem;
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      .panel dt {
+        color: var(--muted);
+      }
+
+      .panel dd {
+        margin: 0;
+        word-break: break-word;
+      }
+
+      .panel ol,
+      .panel ul {
+        margin: 0.5rem 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.85rem;
+      }
+
+      .panel li + li {
+        margin-top: 0.25rem;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .error-panel {
+        border-color: var(--error);
+        color: var(--error);
+      }
+
+      .event-feed {
+        max-height: 240px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>FPS Arena Bench - Replay Viewer</h1>
+      <p>Local top-down spectator for <code>replay.safe.json</code> artifacts.</p>
+    </header>
+
+    <main>
+      <section class="stage">
+        <div class="file-loader">
+          <label for="replay-file-input">Open a replay:</label>
+          <input id="replay-file-input" type="file" accept=".json,application/json" />
+        </div>
+
+        <div class="canvas-frame">
+          <canvas id="replay-canvas" width="640" height="480"></canvas>
+        </div>
+
+        <div class="controls">
+          <div class="row">
+            <button id="replay-play-pause" type="button" disabled>Play</button>
+            <button id="replay-step-back" type="button" disabled>&laquo; Step</button>
+            <button id="replay-step-forward" type="button" disabled>Step &raquo;</button>
+            <button id="replay-reset" type="button" disabled>Reset</button>
+          </div>
+          <input id="replay-scrubber" type="range" min="0" max="0" value="0" disabled />
+          <label>
+            Speed
+            <select id="replay-speed" disabled></select>
+          </label>
+        </div>
+
+        <div class="status-row">
+          <span id="replay-tick">Tick 0 / 0</span>
+          <span id="replay-controls-status">No replay loaded</span>
+        </div>
+      </section>
+
+      <aside>
+        <section id="replay-summary-panel" class="panel" hidden>
+          <h2>Match Summary</h2>
+          <dl>
+            <dt>Match</dt>
+            <dd id="replay-match-id"></dd>
+            <dt>Map</dt>
+            <dd id="replay-map"></dd>
+            <dt>Status</dt>
+            <dd id="replay-summary-status"></dd>
+            <dt>Winner</dt>
+            <dd id="replay-winner"></dd>
+            <dt>Duration</dt>
+            <dd id="replay-duration"></dd>
+            <dt>Reliability</dt>
+            <dd id="replay-reliability"></dd>
+            <dt>Latency</dt>
+            <dd id="replay-latency"></dd>
+          </dl>
+          <h2>Placements</h2>
+          <ol id="replay-placements"></ol>
+          <h2>Events</h2>
+          <ul id="replay-event-feed" class="event-feed"></ul>
+        </section>
+
+        <section id="replay-error-panel" class="panel error-panel" hidden>
+          <h2>Replay Error</h2>
+          <p id="replay-error-message"></p>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="./dist/entry.js"></script>
+  </body>
+</html>
