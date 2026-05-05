@@ -1,7 +1,7 @@
 {
   "schemaVersion": "fps-arena-bench.schema.v0.1",
   "id": "bot-duel",
-  "rulesetVersion": "ruleset-v0.1",
+  "rulesetVersion": "ruleset.v0.1",
   "map": {
     "id": "default-arena",
     "version": "0.1.0",
