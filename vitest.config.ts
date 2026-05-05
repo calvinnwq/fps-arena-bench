@@ -11,6 +11,8 @@ export default defineConfig({
       '@fps-arena-bench/bots': new URL('./packages/bots/src/index.ts', import.meta.url).pathname,
       '@fps-arena-bench/replay': new URL('./packages/replay/src/index.ts', import.meta.url)
         .pathname,
+      '@fps-arena-bench/adapters': new URL('./packages/adapters/src/index.ts', import.meta.url)
+        .pathname,
       '@fps-arena-bench/cli': new URL('./packages/cli/src/index.ts', import.meta.url).pathname,
       '@fps-arena-bench/web': new URL('./apps/web/src/index.ts', import.meta.url).pathname,
     },

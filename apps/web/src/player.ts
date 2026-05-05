@@ -58,11 +58,7 @@ export class ReplayPlayer {
       requireFinite(options.initialSpeed, 'initialSpeed');
     }
 
-    this.currentTick = clamp(
-      Math.trunc(options.initialTick ?? 0),
-      0,
-      this.lastTick,
-    );
+    this.currentTick = clamp(Math.trunc(options.initialTick ?? 0), 0, this.lastTick);
     this.currentSpeed = clamp(
       options.initialSpeed ?? DEFAULT_PLAYER_SPEED,
       PLAYER_MIN_SPEED,

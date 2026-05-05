@@ -1,8 +1,4 @@
-import {
-  loadReplayFromString,
-  loadReplayFromValue,
-  type LoadReplayError,
-} from './loader.js';
+import { loadReplayFromString, loadReplayFromValue, type LoadReplayError } from './loader.js';
 import { ReplayPlayer } from './player.js';
 import { buildReplaySummary, type ReplaySummary } from './summary.js';
 import type { ReplayTimeline, TimelineFrame } from './timeline.js';
@@ -95,9 +91,7 @@ export class ReplayViewer {
     this.player?.advance(deltaMs);
   }
 
-  private applyLoadResult(
-    result: ReturnType<typeof loadReplayFromString>,
-  ): ViewerSnapshot {
+  private applyLoadResult(result: ReturnType<typeof loadReplayFromString>): ViewerSnapshot {
     this.disposePlayer();
 
     if (!result.ok) {

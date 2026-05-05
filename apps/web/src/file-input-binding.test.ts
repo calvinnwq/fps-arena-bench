@@ -78,11 +78,7 @@ const buildArtifact = () => {
 
 const buildArtifactJson = (): string => JSON.stringify(buildArtifact());
 
-const createFakeFile = (
-  name: string,
-  content: string,
-  overrideSize?: number,
-): ReplayFile => ({
+const createFakeFile = (name: string, content: string, overrideSize?: number): ReplayFile => ({
   name,
   size: overrideSize ?? content.length,
   text: () => Promise.resolve(content),

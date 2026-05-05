@@ -89,9 +89,7 @@ const buildMap = (overrides: Partial<MapDefinition> = {}): MapDefinition => ({
     { id: 'b', contenderSlot: 1, position: { x: 18, y: 5 }, headingDegrees: 180 },
   ],
   walls: [{ id: 'w1', x: 9, y: 4, width: 2, height: 2 }],
-  pickups: [
-    { id: 'health-1', type: 'health', position: { x: 5, y: 5 }, respawnTicks: 5 },
-  ],
+  pickups: [{ id: 'health-1', type: 'health', position: { x: 5, y: 5 }, respawnTicks: 5 }],
   symmetry: { kind: 'none' },
   ...overrides,
 });
@@ -127,8 +125,7 @@ const buildFrame = (overrides: Partial<TimelineFrame> = {}): TimelineFrame => ({
   ...overrides,
 });
 
-const opsOf = (calls: readonly CallRecord[]): readonly string[] =>
-  calls.map((c) => c.op);
+const opsOf = (calls: readonly CallRecord[]): readonly string[] => calls.map((c) => c.op);
 
 describe('renderScene', () => {
   it('clears the viewport with the theme background before drawing primitives', () => {
@@ -217,9 +214,7 @@ describe('renderScene', () => {
     expect(arcs.length).toBeGreaterThanOrEqual(2);
 
     // The fillStyle preceding each pickup's fill() differs between available and unavailable.
-    const fillIndexes = ctx.calls
-      .map((c, i) => (c.op === 'fill' ? i : -1))
-      .filter((i) => i >= 0);
+    const fillIndexes = ctx.calls.map((c, i) => (c.op === 'fill' ? i : -1)).filter((i) => i >= 0);
     expect(fillIndexes.length).toBeGreaterThanOrEqual(2);
 
     const styleBefore = (idx: number): string | undefined => {
@@ -280,9 +275,7 @@ describe('renderScene', () => {
 
     // Dead player => should set fillStyle to the dead color at some point.
     const deadStyle = ctx.calls.find(
-      (c) =>
-        c.op === 'set:fillStyle' &&
-        c.args[0] === DEFAULT_RENDERER_THEME.playerDead,
+      (c) => c.op === 'set:fillStyle' && c.args[0] === DEFAULT_RENDERER_THEME.playerDead,
     );
     expect(deadStyle, 'expected the dead-player fill style to be applied').toBeDefined();
 
@@ -319,10 +312,7 @@ describe('renderScene', () => {
     // Heading 0 => +x. lineTo's x must be greater than 20, y must equal 100.
     const lineCall = ctx.calls.find(
       (c) =>
-        c.op === 'lineTo' &&
-        typeof c.args[0] === 'number' &&
-        c.args[0] > 20 &&
-        c.args[1] === 100,
+        c.op === 'lineTo' && typeof c.args[0] === 'number' && c.args[0] > 20 && c.args[1] === 100,
     );
     expect(lineCall, 'expected lineTo extending in +x direction').toBeDefined();
   });
@@ -387,9 +377,7 @@ describe('renderScene', () => {
       playerColorByContenderId: { alpha: '#abcdef', bravo: '#fedcba' },
     });
 
-    const fills = ctx.calls
-      .filter((c) => c.op === 'set:fillStyle')
-      .map((c) => c.args[0]);
+    const fills = ctx.calls.filter((c) => c.op === 'set:fillStyle').map((c) => c.args[0]);
     expect(fills).toContain('#abcdef');
     expect(fills).toContain('#fedcba');
   });
@@ -410,15 +398,7 @@ describe('renderScene', () => {
     const ops = opsOf(ctx.calls);
     // Exactly: clear background (set:fillStyle + fillRect), then bounds (set:strokeStyle + set:lineWidth + strokeRect).
     expect(ops.includes('strokeRect')).toBe(true);
-    expect(
-      ctx.calls.find(
-        (c) => c.op === 'set:fillStyle' && c.args[0] === '#111',
-      ),
-    ).toBeDefined();
-    expect(
-      ctx.calls.find(
-        (c) => c.op === 'set:strokeStyle' && c.args[0] === '#0f0',
-      ),
-    ).toBeDefined();
+    expect(ctx.calls.find((c) => c.op === 'set:fillStyle' && c.args[0] === '#111')).toBeDefined();
+    expect(ctx.calls.find((c) => c.op === 'set:strokeStyle' && c.args[0] === '#0f0')).toBeDefined();
   });
 });

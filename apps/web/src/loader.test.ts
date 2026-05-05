@@ -9,11 +9,7 @@ import type { Action, MapDefinition, MatchConfig } from '@fps-arena-bench/schema
 import { SCHEMA_VERSION } from '@fps-arena-bench/schemas';
 import { describe, expect, it } from 'vitest';
 
-import {
-  MAX_REPLAY_INPUT_BYTES,
-  loadReplayFromString,
-  loadReplayFromValue,
-} from './loader.js';
+import { MAX_REPLAY_INPUT_BYTES, loadReplayFromString, loadReplayFromValue } from './loader.js';
 
 const VALID_HASH = `sha256:${'a'.repeat(64)}`;
 
@@ -155,7 +151,7 @@ describe('loadReplayFromValue', () => {
   it('returns invalid-timeline error when ticksElapsed disagrees with engine', () => {
     const artifact = buildArtifact();
     const tampered = JSON.parse(JSON.stringify(artifact)) as Record<string, unknown>;
-    const result = (tampered.result as Record<string, unknown>);
+    const result = tampered.result as Record<string, unknown>;
     result.ticksElapsed = (result.ticksElapsed as number) + 50;
     const out = loadReplayFromValue(tampered);
     expect(out.ok).toBe(false);

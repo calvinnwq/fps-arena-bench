@@ -70,9 +70,7 @@ const buildArtifact = () => {
   return recorder.build({ state });
 };
 
-const expectReady = (
-  snap: ViewerSnapshot,
-): Extract<ViewerSnapshot, { status: 'ready' }> => {
+const expectReady = (snap: ViewerSnapshot): Extract<ViewerSnapshot, { status: 'ready' }> => {
   if (snap.status !== 'ready') {
     throw new Error(`expected ready snapshot, got ${snap.status}`);
   }

@@ -26,9 +26,7 @@ const buildTestMap = (): MapDefinition => ({
     { id: 'bravo-spawn', contenderSlot: 1, position: { x: 8, y: 5 }, headingDegrees: 180 },
   ],
   walls: [],
-  pickups: [
-    { id: 'health-1', type: 'health', position: { x: 5, y: 5 }, respawnTicks: 5 },
-  ],
+  pickups: [{ id: 'health-1', type: 'health', position: { x: 5, y: 5 }, respawnTicks: 5 }],
   symmetry: { kind: 'none' },
 });
 
@@ -197,9 +195,22 @@ describe('buildReplaySummary', () => {
 describe('isKeyTickEvent', () => {
   it('recognizes combat, pickup, and match-end events as key', () => {
     const samples: readonly TickEvent[] = [
-      { type: 'shoot', contenderId: 'alpha', target: { x: 5, y: 5 }, hitContenderId: 'bravo', damage: 25, ammoSpent: 1 },
+      {
+        type: 'shoot',
+        contenderId: 'alpha',
+        target: { x: 5, y: 5 },
+        hitContenderId: 'bravo',
+        damage: 25,
+        ammoSpent: 1,
+      },
       { type: 'shoot-no-ammo', contenderId: 'alpha' },
-      { type: 'pickup-collected', contenderId: 'alpha', pickupId: 'h-1', pickupType: 'health', amount: 25 },
+      {
+        type: 'pickup-collected',
+        contenderId: 'alpha',
+        pickupId: 'h-1',
+        pickupType: 'health',
+        amount: 25,
+      },
       { type: 'pickup-respawned', pickupId: 'h-1' },
       { type: 'elimination', contenderId: 'bravo', killerContenderId: 'alpha' },
       { type: 'match-ended', winner: 'alpha', reason: 'last-survivor' },
@@ -212,7 +223,13 @@ describe('isKeyTickEvent', () => {
   it('treats turn, move, and noop as non-key events', () => {
     const samples: readonly TickEvent[] = [
       { type: 'turn', contenderId: 'alpha', fromHeading: 0, toHeading: 90 },
-      { type: 'move', contenderId: 'alpha', from: { x: 0, y: 0 }, to: { x: 1, y: 0 }, blocked: false },
+      {
+        type: 'move',
+        contenderId: 'alpha',
+        from: { x: 0, y: 0 },
+        to: { x: 1, y: 0 },
+        blocked: false,
+      },
       { type: 'noop', contenderId: 'alpha' },
     ];
     for (const sample of samples) {

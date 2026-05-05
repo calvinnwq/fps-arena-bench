@@ -110,10 +110,7 @@ export function isKeyTickEvent(event: TickEvent): boolean {
   }
 }
 
-export function formatTickEvent(
-  event: TickEvent,
-  options: FormatTickEventOptions = {},
-): string {
+export function formatTickEvent(event: TickEvent, options: FormatTickEventOptions = {}): string {
   const lookup = options.displayNameByContenderId;
   const name = (contenderId: string): string => lookup?.[contenderId] ?? contenderId;
 

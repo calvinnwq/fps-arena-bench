@@ -346,13 +346,15 @@ describe('bindReplayControls', () => {
     expect(host.scrubber.inputListeners.length).toBe(0);
     expect(host.speedSelect.changeListeners.length).toBe(0);
 
-    const tickBefore = viewer.getSnapshot().status === 'ready'
-      ? (viewer.getSnapshot() as { tick: number }).tick
-      : -1;
+    const tickBefore =
+      viewer.getSnapshot().status === 'ready'
+        ? (viewer.getSnapshot() as { tick: number }).tick
+        : -1;
     host.stepForwardButton.click();
-    const tickAfter = viewer.getSnapshot().status === 'ready'
-      ? (viewer.getSnapshot() as { tick: number }).tick
-      : -1;
+    const tickAfter =
+      viewer.getSnapshot().status === 'ready'
+        ? (viewer.getSnapshot() as { tick: number }).tick
+        : -1;
     expect(tickAfter).toBe(tickBefore);
   });
 

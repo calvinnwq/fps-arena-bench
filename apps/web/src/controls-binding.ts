@@ -58,9 +58,7 @@ export function bindReplayControls(
   viewer: ReplayViewer,
   options: BindReplayControlsOptions = {},
 ): ControlsBinding {
-  const buildOptions = options.speedPresets
-    ? { speedPresets: options.speedPresets }
-    : {};
+  const buildOptions = options.speedPresets ? { speedPresets: options.speedPresets } : {};
 
   const handlePlayPause = (): void => viewer.togglePlayPause();
   const handleStepBack = (): void => viewer.step(-1);

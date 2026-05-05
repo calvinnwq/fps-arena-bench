@@ -50,11 +50,7 @@ export interface PlayerPrimitive {
   readonly healthRatio: number;
 }
 
-export type ScenePrimitive =
-  | BoundsPrimitive
-  | WallPrimitive
-  | PickupPrimitive
-  | PlayerPrimitive;
+export type ScenePrimitive = BoundsPrimitive | WallPrimitive | PickupPrimitive | PlayerPrimitive;
 
 export interface Scene {
   readonly viewport: { readonly width: number; readonly height: number; readonly padding: number };
@@ -85,9 +81,7 @@ const requireNonNegativeFinite = (value: number, label: string): void => {
   }
 };
 
-const degreesToUnitVector = (
-  degrees: number,
-): { readonly x: number; readonly y: number } => {
+const degreesToUnitVector = (degrees: number): { readonly x: number; readonly y: number } => {
   const radians = (degrees * Math.PI) / 180;
   const x = Math.cos(radians);
   const y = Math.sin(radians);
@@ -155,10 +149,7 @@ export function buildScene(input: BuildSceneInput): Scene {
 
   for (const player of frame.players) {
     const heading = degreesToUnitVector(player.headingDegrees);
-    const healthRatio = Math.max(
-      0,
-      Math.min(1, player.health / MAX_PLAYER_HEALTH),
-    );
+    const healthRatio = Math.max(0, Math.min(1, player.health / MAX_PLAYER_HEALTH));
     primitives.push({
       kind: 'player',
       contenderId: player.contenderId,

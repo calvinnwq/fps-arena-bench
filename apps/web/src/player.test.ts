@@ -117,9 +117,9 @@ describe('ReplayPlayer', () => {
     it('rejects non-finite options', () => {
       const timeline = buildTimeline();
       expect(() => new ReplayPlayer(timeline, { initialTick: Number.NaN })).toThrow(RangeError);
-      expect(
-        () => new ReplayPlayer(timeline, { initialSpeed: Number.POSITIVE_INFINITY }),
-      ).toThrow(RangeError);
+      expect(() => new ReplayPlayer(timeline, { initialSpeed: Number.POSITIVE_INFINITY })).toThrow(
+        RangeError,
+      );
     });
 
     it('rejects an empty timeline defensively', () => {

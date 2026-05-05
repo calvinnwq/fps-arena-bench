@@ -22,9 +22,7 @@ const buildMap = (overrides: Partial<MapDefinition> = {}): MapDefinition => ({
     { id: 'b', contenderSlot: 1, position: { x: 18, y: 5 }, headingDegrees: 180 },
   ],
   walls: [{ id: 'w1', x: 9, y: 4, width: 2, height: 2 }],
-  pickups: [
-    { id: 'health-1', type: 'health', position: { x: 5, y: 5 }, respawnTicks: 5 },
-  ],
+  pickups: [{ id: 'health-1', type: 'health', position: { x: 5, y: 5 }, respawnTicks: 5 }],
   symmetry: { kind: 'none' },
   ...overrides,
 });
@@ -51,9 +49,7 @@ const buildFrame = (overrides: Partial<TimelineFrame> = {}): TimelineFrame => ({
       alive: true,
     },
   ],
-  pickups: [
-    { id: 'health-1', type: 'health', x: 5, y: 5, available: true },
-  ],
+  pickups: [{ id: 'health-1', type: 'health', x: 5, y: 5, available: true }],
   score: { alpha: 0, bravo: 0 },
   status: 'in-progress',
   winner: null,
@@ -75,15 +71,15 @@ describe('buildScene', () => {
   it('throws when viewport width or height is non-positive', () => {
     const map = buildMap();
     const frame = buildFrame();
-    expect(() =>
-      buildScene({ frame, map, viewport: { width: 0, height: 100 } }),
-    ).toThrow(RangeError);
-    expect(() =>
-      buildScene({ frame, map, viewport: { width: 100, height: -1 } }),
-    ).toThrow(RangeError);
-    expect(() =>
-      buildScene({ frame, map, viewport: { width: Number.NaN, height: 100 } }),
-    ).toThrow(RangeError);
+    expect(() => buildScene({ frame, map, viewport: { width: 0, height: 100 } })).toThrow(
+      RangeError,
+    );
+    expect(() => buildScene({ frame, map, viewport: { width: 100, height: -1 } })).toThrow(
+      RangeError,
+    );
+    expect(() => buildScene({ frame, map, viewport: { width: Number.NaN, height: 100 } })).toThrow(
+      RangeError,
+    );
   });
 
   it('throws when padding is negative or non-finite', () => {
@@ -134,9 +130,7 @@ describe('buildScene', () => {
     const frame = buildFrame();
     const scene = buildScene({ frame, map, viewport: { width: 200, height: 200, padding: 0 } });
 
-    const walls = scene.primitives.filter(
-      (p): p is WallPrimitive => p.kind === 'wall',
-    );
+    const walls = scene.primitives.filter((p): p is WallPrimitive => p.kind === 'wall');
     expect(walls).toHaveLength(map.walls.length);
     const wall = walls[0]!;
     expect(wall.id).toBe('w1');
@@ -158,9 +152,7 @@ describe('buildScene', () => {
     });
     const scene = buildScene({ frame, map, viewport: { width: 200, height: 200, padding: 0 } });
 
-    const pickups = scene.primitives.filter(
-      (p): p is PickupPrimitive => p.kind === 'pickup',
-    );
+    const pickups = scene.primitives.filter((p): p is PickupPrimitive => p.kind === 'pickup');
     expect(pickups).toHaveLength(2);
     const health = pickups.find((p) => p.id === 'health-1')!;
     expect(health.pickupType).toBe('health');
@@ -197,9 +189,7 @@ describe('buildScene', () => {
     });
     const scene = buildScene({ frame, map, viewport: { width: 200, height: 200, padding: 0 } });
 
-    const players = scene.primitives.filter(
-      (p): p is PlayerPrimitive => p.kind === 'player',
-    );
+    const players = scene.primitives.filter((p): p is PlayerPrimitive => p.kind === 'player');
     expect(players).toHaveLength(2);
     const alpha = players.find((p) => p.contenderId === 'alpha')!;
     const bravo = players.find((p) => p.contenderId === 'bravo')!;
@@ -259,9 +249,7 @@ describe('buildScene', () => {
       ],
     });
     const scene = buildScene({ frame, map, viewport: { width: 200, height: 200, padding: 0 } });
-    const players = scene.primitives.filter(
-      (p): p is PlayerPrimitive => p.kind === 'player',
-    );
+    const players = scene.primitives.filter((p): p is PlayerPrimitive => p.kind === 'player');
     const east = players.find((p) => p.contenderId === 'east')!;
     const south = players.find((p) => p.contenderId === 'south')!;
     const west = players.find((p) => p.contenderId === 'west')!;

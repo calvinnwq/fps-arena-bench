@@ -10,13 +10,7 @@ export interface Drawing2DContext {
   fillRect(x: number, y: number, width: number, height: number): void;
   strokeRect(x: number, y: number, width: number, height: number): void;
   beginPath(): void;
-  arc(
-    x: number,
-    y: number,
-    radius: number,
-    startAngle: number,
-    endAngle: number,
-  ): void;
+  arc(x: number, y: number, radius: number, startAngle: number, endAngle: number): void;
   fill(): void;
   stroke(): void;
   moveTo(x: number, y: number): void;
@@ -71,12 +65,7 @@ const HEALTH_BAR_HEIGHT_FACTOR = 0.25;
 const HEALTH_BAR_GAP = 2;
 const FULL_CIRCLE = Math.PI * 2;
 
-const drawCircle = (
-  ctx: Drawing2DContext,
-  cx: number,
-  cy: number,
-  radius: number,
-): void => {
+const drawCircle = (ctx: Drawing2DContext, cx: number, cy: number, radius: number): void => {
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, FULL_CIRCLE);
 };
@@ -157,13 +146,7 @@ export function renderScene(
 
   let playerCount = 0;
   for (const primitive of scene.primitives) {
-    renderPrimitive(
-      ctx,
-      primitive,
-      theme,
-      playerColorByContenderId,
-      () => playerCount++,
-    );
+    renderPrimitive(ctx, primitive, theme, playerColorByContenderId, () => playerCount++);
   }
 }
 

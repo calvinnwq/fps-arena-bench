@@ -184,9 +184,7 @@ export interface FileInputLikeElement {
   removeEventListener(type: 'change', listener: () => void): void;
 }
 
-export const createFileInputControl = (
-  input: FileInputLikeElement,
-): ReplayFileInputElement => ({
+export const createFileInputControl = (input: FileInputLikeElement): ReplayFileInputElement => ({
   getFiles() {
     return input.files === null ? [] : input.files;
   },

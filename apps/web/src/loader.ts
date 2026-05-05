@@ -35,10 +35,7 @@ export function loadReplayFromString(input: string): LoadReplayResult {
     return fail('invalid-json', 'Replay input is empty.');
   }
   if (input.length > MAX_REPLAY_INPUT_BYTES) {
-    return fail(
-      'invalid-json',
-      `Replay input exceeds the ${MAX_REPLAY_INPUT_BYTES} byte limit.`,
-    );
+    return fail('invalid-json', `Replay input exceeds the ${MAX_REPLAY_INPUT_BYTES} byte limit.`);
   }
 
   let parsed: unknown;
