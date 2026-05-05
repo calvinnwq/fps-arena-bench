@@ -33,3 +33,21 @@ export type {
   SpawnLikeOptions,
   SpawnLikeOutcome,
 } from './claude-cli.js';
+
+export {
+  NODE_SPAWN_KILL_GRACE_MS,
+  createNodeClaudeCliFileSystem,
+  createNodeSpawnLike,
+} from './claude-cli-node.js';
+export type { NodeClaudeCliFileSystemOptions, NodeSpawnLikeOptions } from './claude-cli-node.js';
+
+export {
+  createClaudeCliProviderFactory,
+  createNodeClaudeCliProviderFactory,
+} from './claude-cli-factory.js';
+export type {
+  ClaudeCliProviderFactory,
+  ClaudeCliProviderFactoryRequest,
+  CreateClaudeCliProviderFactoryOptions,
+  CreateNodeClaudeCliProviderFactoryOptions,
+} from './claude-cli-factory.js';

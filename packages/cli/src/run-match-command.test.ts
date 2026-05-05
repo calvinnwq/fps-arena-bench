@@ -7,6 +7,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { ActionProvider, ActionRequest } from '@fps-arena-bench/contracts';
 import {
+  createClaudeCliProviderFactory,
+  type ClaudeCliFileSystem,
+  type SpawnLike,
+} from '@fps-arena-bench/adapters';
+import {
   SCHEMA_VERSION,
   validateMatchConfig,
   validateMap,
@@ -21,6 +26,7 @@ import { runMatchCommand } from './run-match-command.js';
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const defaultMapPath = join(repoRoot, 'maps/default-arena.json');
 const defaultConfigPath = join(repoRoot, 'configs/examples/bot-duel.json');
+const claudeCliConfigPath = join(repoRoot, 'configs/examples/claude-cli-vs-baseline.json');
 
 const makeTempDir = (label: string): string => mkdtempSync(join(tmpdir(), `fps-cli-${label}-`));
 
@@ -150,6 +156,90 @@ describe('runMatchCommand', () => {
       ).rejects.toThrow(/map hash/i);
     } finally {
       rmSync(tmpConfigDir, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('runs the claude-cli example end-to-end via providerOverrides with a fake subprocess', async () => {
+    const outDir = makeTempDir('claude-cli');
+
+    const created: string[] = [];
+    const removed: string[] = [];
+    let mkdtempCount = 0;
+    const noopActionJson = JSON.stringify({ schemaVersion: SCHEMA_VERSION, type: 'noop' });
+
+    const fakeFs: ClaudeCliFileSystem = {
+      mkdtemp: async (prefix) => {
+        mkdtempCount += 1;
+        const path = `${prefix}fake-${mkdtempCount}`;
+        created.push(path);
+        return path;
+      },
+      rm: async (path) => {
+        removed.push(path);
+      },
+    };
+
+    let spawnCount = 0;
+    const fakeSpawn: SpawnLike = async () => {
+      spawnCount += 1;
+      return { kind: 'exit', code: 0, stdout: noopActionJson, stderr: '' };
+    };
+
+    const factory = createClaudeCliProviderFactory({
+      spawnImpl: fakeSpawn,
+      fs: fakeFs,
+    });
+
+    try {
+      const summary = await runMatchCommand({
+        configPath: claudeCliConfigPath,
+        mapPath: defaultMapPath,
+        outDir,
+        providerOverrides: { 'claude-cli': factory },
+      });
+
+      expect(summary.matchId).toBe('claude-cli-vs-baseline');
+      expect(summary.schemaViolations).toBe(0);
+      expect(summary.providerErrors).toBe(0);
+      expect(summary.ticksElapsed).toBeGreaterThan(0);
+      expect(summary.placements).toHaveLength(2);
+      expect(spawnCount).toBeGreaterThan(0);
+      expect(created.length).toBe(spawnCount);
+      expect(removed.length).toBe(spawnCount);
+      for (const path of removed) {
+        expect(created).toContain(path);
+      }
+
+      const replay = validateReplaySafeArtifact(
+        JSON.parse(readFileSync(summary.replayPath, 'utf8')) as unknown,
+      );
+      const claudeContender = replay.config.contenders.find(
+        (entry) => entry.adapterId === 'claude-cli',
+      );
+      expect(claudeContender).toBeDefined();
+      const replayJson = readFileSync(summary.replayPath, 'utf8');
+      expect(replayJson).not.toContain(
+        'schemaVersion": "fps-arena-bench.schema.v0.1",\n      "type": "noop"',
+      );
+      expect(replayJson).not.toMatch(/raw[_-]?prompt/i);
+      expect(replayJson).not.toMatch(/raw[_-]?output/i);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects the claude-cli example with a clear error when claude-cli is not registered', async () => {
+    const outDir = makeTempDir('claude-cli-missing');
+    try {
+      await expect(
+        runMatchCommand({
+          configPath: claudeCliConfigPath,
+          mapPath: defaultMapPath,
+          outDir,
+        }),
+      ).rejects.toThrow(/claude-cli/);
+    } finally {
       rmSync(outDir, { recursive: true, force: true });
     }
   });
