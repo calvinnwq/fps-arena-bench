@@ -38,7 +38,7 @@ const ACTION_EXAMPLES = [
 
 const visibleOpponentObservation = {
   schemaVersion: SCHEMA_VERSION,
-  rulesetVersion: 'ruleset-v0.1',
+  rulesetVersion: 'ruleset.v0.1',
   matchId: 'action-prompt-dry-run',
   tick: 12,
   self: {
@@ -102,7 +102,7 @@ export function renderActionPrompt(observation: Observation): string {
     '',
     'Observation format:',
     'The observation is a JSON object containing schemaVersion, rulesetVersion, matchId, tick, self, visiblePlayers, visiblePickups, visibleWalls, and score.',
-    'Only visible entities are included. Missing opponent ammo means it was not observed.',
+    'Only visible players and available pickups are included; visibleWalls contains static map geometry known to all contenders. Missing opponent ammo means it was not observed.',
     '',
     'Required response:',
     ACTION_RESPONSE_RULES,

@@ -4,7 +4,7 @@ exports[`action prompt template > renders deterministically from a representativ
 "Role: tactical controller for FPS Arena Bench.
 Prompt template version: action-prompt.v0.1
 Schema version: fps-arena-bench.schema.v0.1
-Ruleset version: ruleset-v0.1
+Ruleset version: ruleset.v0.1
 
 Objective:
 Choose the single best legal action for this tick. Favor survival, useful damage, pickup timing, and map control without assuming hidden state.
@@ -19,7 +19,7 @@ A timeout, invalid JSON, or schema-invalid action counts against reliability and
 
 Observation format:
 The observation is a JSON object containing schemaVersion, rulesetVersion, matchId, tick, self, visiblePlayers, visiblePickups, visibleWalls, and score.
-Only visible entities are included. Missing opponent ammo means it was not observed.
+Only visible players and available pickups are included; visibleWalls contains static map geometry known to all contenders. Missing opponent ammo means it was not observed.
 
 Required response:
 Return exactly one JSON object matching the action schema. Do not include chain-of-thought, rationale, markdown, or prose.
@@ -54,7 +54,7 @@ Valid action examples:
 Current observation:
 {
   "schemaVersion": "fps-arena-bench.schema.v0.1",
-  "rulesetVersion": "ruleset-v0.1",
+  "rulesetVersion": "ruleset.v0.1",
   "matchId": "action-prompt-dry-run",
   "tick": 12,
   "self": {

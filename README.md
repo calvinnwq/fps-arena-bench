@@ -81,7 +81,20 @@ pnpm test
 pnpm build
 ```
 
-The initial scaffold includes concrete v0.1 schemas, a validated default arena, and action prompt contracts. Simulation logic, adapters, and CLI behavior land in later issues.
+This branch includes the deterministic core engine, baseline bots, safe replay writer/reader, and
+bot-only CLI runner. A local bot duel can be generated with:
+
+```bash
+pnpm build
+node packages/cli/dist/index.js run \
+  --config configs/examples/bot-duel.json \
+  --map maps/default-arena.json \
+  --out replays/bot-duel
+```
+
+`run` also accepts `-c`, `-m`, `-o`/`--out-dir`, `--snapshot-interval <ticks>` to include hash-only replay snapshots, and `--quiet`/`-q` to suppress the stdout summary. Use `help`, `--help`, or `-h` for usage. The output directory contains `replay.safe.json` and `result.json`; CLI exit codes are `0` for success/help, `1` for match execution failures, and `2` for argument errors.
+
+The web replay viewer and harness adapters are still later v0.1 work.
 
 ## Non-goals for v0.1
 
