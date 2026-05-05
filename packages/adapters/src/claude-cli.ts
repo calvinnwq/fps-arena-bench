@@ -1,0 +1,348 @@
+import type { ActionProvider, ActionRequest } from '@fps-arena-bench/contracts';
+import { renderActionPrompt } from '@fps-arena-bench/contracts';
+import {
+  SCHEMA_VERSION,
+  type Action,
+  type AdapterError,
+  type AdapterMetadata,
+} from '@fps-arena-bench/schemas';
+
+import { ADAPTER_DEFAULT_MAX_OUTPUT_BYTES, parseActionResponse } from './parse-action.js';
+
+export const CLAUDE_CLI_DEFAULT_ADAPTER_ID = 'claude-cli';
+export const CLAUDE_CLI_DEFAULT_COMMAND = 'claude';
+export const CLAUDE_CLI_DEFAULT_ARGS: readonly string[] = ['--print'];
+export const CLAUDE_CLI_DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+export const CLAUDE_CLI_DEFAULT_TEMP_DIR_PREFIX = 'fps-arena-bench-claude-cli-';
+export const CLAUDE_CLI_DEFAULT_ENV_ALLOWLIST: readonly string[] = ['PATH', 'HOME'];
+
+export interface SpawnLikeOptions {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly cwd: string;
+  readonly env: Record<string, string>;
+  readonly stdin: string;
+  readonly signal: AbortSignal;
+  readonly maxStdoutBytes: number;
+  readonly maxStderrBytes: number;
+}
+
+export type SpawnLikeOutcome =
+  | {
+      readonly kind: 'exit';
+      readonly code: number;
+      readonly stdout: string;
+      readonly stderr: string;
+    }
+  | {
+      readonly kind: 'output-cap';
+      readonly stream: 'stdout' | 'stderr';
+      readonly stdout: string;
+      readonly stderr: string;
+    }
+  | { readonly kind: 'aborted'; readonly stdout: string; readonly stderr: string }
+  | { readonly kind: 'spawn-error'; readonly message: string };
+
+export type SpawnLike = (options: SpawnLikeOptions) => Promise<SpawnLikeOutcome>;
+
+export interface ClaudeCliFileSystem {
+  mkdtemp(prefix: string): Promise<string>;
+  rm(path: string): Promise<void>;
+}
+
+export interface ClaudeCliAdapterOptions {
+  readonly spawnImpl: SpawnLike;
+  readonly fs: ClaudeCliFileSystem;
+  readonly command?: string;
+  readonly args?: readonly string[];
+  readonly adapterId?: string;
+  readonly displayName?: string;
+  readonly requestTimeoutMs?: number;
+  readonly maxStdoutBytes?: number;
+  readonly maxStderrBytes?: number;
+  readonly tempDirPrefix?: string;
+  readonly envAllowlist?: readonly string[];
+  readonly additionalEnv?: Record<string, string>;
+  readonly getEnv?: () => Record<string, string | undefined>;
+  readonly onPromptRendered?: (prompt: string, request: ActionRequest) => void;
+  readonly fallbackAction?: Action;
+}
+
+export class ClaudeCliAdapterError extends Error {
+  readonly adapterError: AdapterError;
+
+  constructor(adapterError: AdapterError) {
+    super(`[claude-cli-adapter:${adapterError.code}] ${adapterError.message}`);
+    this.name = 'ClaudeCliAdapterError';
+    this.adapterError = adapterError;
+  }
+}
+
+const PATH_LIKE_PATTERN =
+  /(?:^|(?<=[\s"'`,(:=]))\/(?:Users|home|root|var|etc|opt|tmp|private|Library|System|mnt|usr\/local|srv|run)\/[^\s"'`,]*/g;
+
+const sanitizeMessage = (message: string): string =>
+  message.replace(PATH_LIKE_PATTERN, '[REDACTED]');
+
+const buildError = (
+  adapterId: string,
+  code: AdapterError['code'],
+  message: string,
+  retryable: boolean,
+): AdapterError => ({
+  schemaVersion: SCHEMA_VERSION,
+  adapterId,
+  code,
+  message: sanitizeMessage(message),
+  retryable,
+});
+
+const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Unknown error';
+};
+
+const truncate = (input: string, maxLength = 200): string =>
+  input.length > maxLength ? `${input.slice(0, maxLength)}…` : input;
+
+const getProcessEnv = (): Record<string, string | undefined> => {
+  const candidate = (globalThis as { process?: { env?: Record<string, string | undefined> } })
+    .process?.env;
+  return candidate ?? {};
+};
+
+export class ClaudeCliAdapter implements ActionProvider {
+  readonly metadata: AdapterMetadata;
+  private readonly spawnImpl: SpawnLike;
+  private readonly fs: ClaudeCliFileSystem;
+  private readonly command: string;
+  private readonly args: readonly string[];
+  private readonly requestTimeoutMs: number;
+  private readonly maxStdoutBytes: number;
+  private readonly maxStderrBytes: number;
+  private readonly tempDirPrefix: string;
+  private readonly envAllowlist: readonly string[];
+  private readonly additionalEnv: Record<string, string>;
+  private readonly getEnv: () => Record<string, string | undefined>;
+  private readonly onPromptRendered: ((prompt: string, request: ActionRequest) => void) | undefined;
+  private readonly fallbackAction: Action | undefined;
+
+  constructor(options: ClaudeCliAdapterOptions) {
+    if (
+      options === null ||
+      typeof options !== 'object' ||
+      typeof options.spawnImpl !== 'function' ||
+      options.fs === undefined
+    ) {
+      throw new Error(
+        'ClaudeCliAdapter requires both a spawnImpl function and a ClaudeCliFileSystem implementation.',
+      );
+    }
+    const adapterId = options.adapterId ?? CLAUDE_CLI_DEFAULT_ADAPTER_ID;
+    this.metadata = {
+      schemaVersion: SCHEMA_VERSION,
+      adapterId,
+      kind: 'harness',
+      displayName: options.displayName ?? 'Claude CLI Harness',
+      supportedActionSchema: SCHEMA_VERSION,
+      description:
+        'Cold subprocess Claude CLI harness adapter that requests strict JSON actions per turn.',
+    };
+    this.spawnImpl = options.spawnImpl;
+    this.fs = options.fs;
+    this.command = options.command ?? CLAUDE_CLI_DEFAULT_COMMAND;
+    this.args = options.args ?? CLAUDE_CLI_DEFAULT_ARGS;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? CLAUDE_CLI_DEFAULT_REQUEST_TIMEOUT_MS;
+    this.maxStdoutBytes = options.maxStdoutBytes ?? ADAPTER_DEFAULT_MAX_OUTPUT_BYTES;
+    this.maxStderrBytes = options.maxStderrBytes ?? ADAPTER_DEFAULT_MAX_OUTPUT_BYTES;
+    this.tempDirPrefix = options.tempDirPrefix ?? CLAUDE_CLI_DEFAULT_TEMP_DIR_PREFIX;
+    this.envAllowlist = options.envAllowlist ?? CLAUDE_CLI_DEFAULT_ENV_ALLOWLIST;
+    this.additionalEnv = options.additionalEnv ?? {};
+    this.getEnv = options.getEnv ?? getProcessEnv;
+    this.onPromptRendered = options.onPromptRendered;
+    this.fallbackAction = options.fallbackAction;
+  }
+
+  async decide(request: ActionRequest): Promise<Action> {
+    const adapterId = this.metadata.adapterId;
+    const externalSignal = request.signal;
+    if (externalSignal?.aborted === true) {
+      throw new ClaudeCliAdapterError(
+        buildError(adapterId, 'aborted', 'Adapter request was aborted before dispatch.', false),
+      );
+    }
+
+    const prompt = renderActionPrompt(request.observation);
+    if (this.onPromptRendered !== undefined) {
+      this.onPromptRendered(prompt, request);
+    }
+
+    // Wire timeout + external-signal forwarding synchronously, before any await,
+    // so an abort during fs.mkdtemp still propagates into the spawn signal.
+    const timeoutController = new AbortController();
+    const onExternalAbort = (): void => {
+      timeoutController.abort(externalSignal?.reason ?? 'external-abort');
+    };
+    if (externalSignal !== undefined) {
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+    const timeoutHandle = setTimeout(() => {
+      timeoutController.abort('timeout');
+    }, this.requestTimeoutMs);
+    const cleanupTimers = (): void => {
+      clearTimeout(timeoutHandle);
+      if (externalSignal !== undefined) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
+    };
+
+    let tempDir: string;
+    try {
+      tempDir = await this.fs.mkdtemp(this.tempDirPrefix);
+    } catch (caught) {
+      cleanupTimers();
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'process-error',
+          `Could not create per-request temp directory: ${errorMessage(caught)}`,
+          true,
+        ),
+      );
+    }
+
+    try {
+      return await this.runSubprocess(
+        adapterId,
+        prompt,
+        tempDir,
+        externalSignal,
+        timeoutController.signal,
+      );
+    } finally {
+      cleanupTimers();
+      try {
+        await this.fs.rm(tempDir);
+      } catch {
+        // Cleanup failures are intentionally swallowed; per ADR 0001 they would only
+        // leak local paths if surfaced and belong in opt-in private channels.
+      }
+    }
+  }
+
+  private async runSubprocess(
+    adapterId: string,
+    prompt: string,
+    cwd: string,
+    externalSignal: AbortSignal | undefined,
+    signal: AbortSignal,
+  ): Promise<Action> {
+    let outcome: SpawnLikeOutcome;
+    try {
+      outcome = await this.spawnImpl({
+        command: this.command,
+        args: this.args,
+        cwd,
+        env: this.buildEnv(),
+        stdin: prompt,
+        signal,
+        maxStdoutBytes: this.maxStdoutBytes,
+        maxStderrBytes: this.maxStderrBytes,
+      });
+    } catch (caught) {
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'process-error',
+          `Claude CLI spawn threw: ${errorMessage(caught)}`,
+          true,
+        ),
+      );
+    }
+
+    if (outcome.kind === 'aborted') {
+      if (externalSignal?.aborted === true) {
+        throw new ClaudeCliAdapterError(
+          buildError(adapterId, 'aborted', 'Adapter request was aborted by caller.', false),
+        );
+      }
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'timeout',
+          `Adapter request exceeded timeout of ${this.requestTimeoutMs}ms.`,
+          true,
+        ),
+      );
+    }
+
+    if (outcome.kind === 'output-cap') {
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'output-cap',
+          `Adapter ${outcome.stream} exceeded its configured byte cap.`,
+          false,
+        ),
+      );
+    }
+
+    if (outcome.kind === 'spawn-error') {
+      const fallback = this.fallbackOrNull();
+      if (fallback !== null) return fallback;
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'process-error',
+          `Claude CLI failed to start: ${outcome.message}`,
+          true,
+        ),
+      );
+    }
+
+    if (outcome.code !== 0) {
+      const fallback = this.fallbackOrNull();
+      if (fallback !== null) return fallback;
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'process-error',
+          `Claude CLI exited with code ${outcome.code}: ${truncate(outcome.stderr.trim()) || 'no stderr'}`,
+          true,
+        ),
+      );
+    }
+
+    const parseResult = parseActionResponse(outcome.stdout, {
+      adapterId,
+      maxOutputBytes: this.maxStdoutBytes,
+    });
+    if (!parseResult.ok) {
+      const fallback = this.fallbackOrNull();
+      if (fallback !== null) return fallback;
+      throw new ClaudeCliAdapterError(parseResult.error);
+    }
+
+    return parseResult.action;
+  }
+
+  private buildEnv(): Record<string, string> {
+    const hostEnv = this.getEnv();
+    const env: Record<string, string> = {};
+    for (const key of this.envAllowlist) {
+      const value = hostEnv[key];
+      if (typeof value === 'string') {
+        env[key] = value;
+      }
+    }
+    for (const [key, value] of Object.entries(this.additionalEnv)) {
+      env[key] = value;
+    }
+    return env;
+  }
+
+  private fallbackOrNull(): Action | null {
+    return this.fallbackAction ?? null;
+  }
+}

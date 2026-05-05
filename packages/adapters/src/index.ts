@@ -15,3 +15,21 @@ export {
   OllamaAdapterError,
 } from './ollama.js';
 export type { FetchLike, FetchLikeResponse, OllamaAdapterOptions } from './ollama.js';
+
+export {
+  CLAUDE_CLI_DEFAULT_ADAPTER_ID,
+  CLAUDE_CLI_DEFAULT_ARGS,
+  CLAUDE_CLI_DEFAULT_COMMAND,
+  CLAUDE_CLI_DEFAULT_ENV_ALLOWLIST,
+  CLAUDE_CLI_DEFAULT_REQUEST_TIMEOUT_MS,
+  CLAUDE_CLI_DEFAULT_TEMP_DIR_PREFIX,
+  ClaudeCliAdapter,
+  ClaudeCliAdapterError,
+} from './claude-cli.js';
+export type {
+  ClaudeCliAdapterOptions,
+  ClaudeCliFileSystem,
+  SpawnLike,
+  SpawnLikeOptions,
+  SpawnLikeOutcome,
+} from './claude-cli.js';
