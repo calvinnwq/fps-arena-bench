@@ -8,7 +8,9 @@ import { describe, expect, it } from 'vitest';
 import type { ActionProvider, ActionRequest } from '@fps-arena-bench/contracts';
 import {
   createClaudeCliProviderFactory,
+  createOllamaProviderFactory,
   type ClaudeCliFileSystem,
+  type FetchLike,
   type SpawnLike,
 } from '@fps-arena-bench/adapters';
 import {
@@ -27,6 +29,7 @@ const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const defaultMapPath = join(repoRoot, 'maps/default-arena.json');
 const defaultConfigPath = join(repoRoot, 'configs/examples/bot-duel.json');
 const claudeCliConfigPath = join(repoRoot, 'configs/examples/claude-cli-vs-baseline.json');
+const ollamaConfigPath = join(repoRoot, 'configs/examples/ollama-vs-baseline.json');
 
 const makeTempDir = (label: string): string => mkdtempSync(join(tmpdir(), `fps-cli-${label}-`));
 
@@ -239,6 +242,49 @@ describe('runMatchCommand', () => {
           outDir,
         }),
       ).rejects.toThrow(/claude-cli/);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('runs the ollama example end-to-end via providerOverrides with fake HTTP', async () => {
+    const outDir = makeTempDir('ollama');
+    const noopActionJson = JSON.stringify({ schemaVersion: SCHEMA_VERSION, type: 'noop' });
+    let fetchCount = 0;
+    const fetchImpl: FetchLike = async (_url, _init) => {
+      fetchCount += 1;
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ response: noopActionJson }),
+      };
+    };
+    const factory = createOllamaProviderFactory({
+      model: 'llama3',
+      fetchImpl,
+    });
+
+    try {
+      const summary = await runMatchCommand({
+        configPath: ollamaConfigPath,
+        mapPath: defaultMapPath,
+        outDir,
+        providerOverrides: { ollama: factory },
+      });
+
+      expect(summary.matchId).toBe('ollama-vs-baseline');
+      expect(summary.schemaViolations).toBe(0);
+      expect(summary.providerErrors).toBe(0);
+      expect(fetchCount).toBeGreaterThan(0);
+
+      const replay = validateReplaySafeArtifact(
+        JSON.parse(readFileSync(summary.replayPath, 'utf8')) as unknown,
+      );
+      expect(replay.config.contenders.some((entry) => entry.adapterId === 'ollama')).toBe(true);
+      const replayJson = readFileSync(summary.replayPath, 'utf8');
+      expect(replayJson).not.toMatch(/raw[_-]?prompt/i);
+      expect(replayJson).not.toMatch(/raw[_-]?output/i);
+      expect(replayJson).not.toContain(noopActionJson);
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }

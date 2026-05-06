@@ -16,6 +16,13 @@ export {
 } from './ollama.js';
 export type { FetchLike, FetchLikeResponse, OllamaAdapterOptions } from './ollama.js';
 
+export { createOllamaProviderFactory } from './ollama-factory.js';
+export type {
+  CreateOllamaProviderFactoryOptions,
+  OllamaProviderFactory,
+  OllamaProviderFactoryRequest,
+} from './ollama-factory.js';
+
 export {
   CLAUDE_CLI_DEFAULT_ADAPTER_ID,
   CLAUDE_CLI_DEFAULT_ARGS,

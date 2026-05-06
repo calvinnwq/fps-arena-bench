@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "fps-arena-bench.schema.v0.1",
+  "id": "ollama-vs-baseline",
+  "rulesetVersion": "ruleset.v0.1",
+  "map": {
+    "id": "default-arena",
+    "version": "0.1.0",
+    "hash": "sha256:ea47f994055fe11dc532cbbe5c8c3d91e7910197a57c1b67285164722ba49a79"
+  },
+  "seed": 1337,
+  "maxTicks": 600,
+  "actionTimeoutMs": 30000,
+  "contenders": [
+    { "id": "alpha", "adapterId": "ollama", "displayName": "Ollama Local" },
+    { "id": "bravo", "adapterId": "chaser-bot", "displayName": "Baseline Chaser" }
+  ],
+  "invalidActionPolicy": {
+    "maxInvalidActions": 3,
+    "fallbackAction": "noop"
+  },
+  "capture": {
+    "safeReplay": true,
+    "privateDebug": false
+  }
+}
