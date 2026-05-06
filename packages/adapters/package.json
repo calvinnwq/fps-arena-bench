@@ -11,5 +11,10 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
     "lint": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@fps-arena-bench/contracts": "workspace:*",
+    "@fps-arena-bench/replay": "workspace:*",
+    "@fps-arena-bench/schemas": "workspace:*"
   }
 }

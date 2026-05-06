@@ -38,6 +38,22 @@ class ThrowingBot implements ActionProvider {
   }
 }
 
+class ThrowingFallbackBot implements ActionProvider {
+  readonly metadata: AdapterMetadata = {
+    schemaVersion: SCHEMA_VERSION,
+    adapterId: 'throwing-fallback-bot',
+    kind: 'bot',
+    displayName: 'Throwing Fallback Bot',
+    supportedActionSchema: SCHEMA_VERSION,
+  };
+
+  decide(_request: ActionRequest): Action {
+    const error = new Error('boom') as Error & { fallbackAction: Action };
+    error.fallbackAction = { schemaVersion: SCHEMA_VERSION, type: 'turn', degrees: 90 };
+    throw error;
+  }
+}
+
 class InvalidAfterValidBot implements ActionProvider {
   readonly metadata: AdapterMetadata = {
     schemaVersion: SCHEMA_VERSION,
@@ -164,6 +180,28 @@ describe('runBotMatch', () => {
     const result = await runBotMatch({ config, map, providers });
     expect(result.providerErrors).toBeGreaterThan(0);
     expect(result.schemaViolations).toBe(0);
+  });
+
+  it('uses surfaced provider fallback actions while counting provider errors', async () => {
+    const map = buildBotTestMap();
+    const config = buildBotTestMatchConfig({
+      mapId: map.id,
+      mapVersion: map.version,
+      seed: 1,
+      maxTicks: 1,
+    });
+    const providers = new Map<string, ActionProvider>([
+      ['alpha', new ThrowingFallbackBot()],
+      ['bravo', new StaticBot()],
+    ]);
+    const result = await runBotMatch({ config, map, providers });
+    expect(result.providerErrors).toBe(1);
+    expect(result.schemaViolations).toBe(0);
+    expect(result.ticks[0]?.inputs.find((input) => input.contenderId === 'alpha')?.action).toEqual({
+      schemaVersion: SCHEMA_VERSION,
+      type: 'turn',
+      degrees: 90,
+    });
   });
 
   it('times out providers and substitutes the fallback action', async () => {

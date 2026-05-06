@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { ArgsError, helpText, parseArgs } from './args.js';
+import { buildEnvProviderOverrides } from './env-provider-overrides.js';
 import { runMatchCommand, type RunMatchCommandSummary } from './run-match-command.js';
 
 export const CLI_PACKAGE_VERSION = '0.0.0';
@@ -9,6 +10,8 @@ export { runMatchCommand } from './run-match-command.js';
 export type { RunMatchCommandOptions, RunMatchCommandSummary } from './run-match-command.js';
 export { parseArgs, helpText, ArgsError } from './args.js';
 export type { ParsedCommand, ParsedRunArgs, ParsedHelpArgs } from './args.js';
+export { buildEnvProviderOverrides } from './env-provider-overrides.js';
+export type { EnvProviderOverrides } from './env-provider-overrides.js';
 export { BUILTIN_ADAPTER_IDS, createBuiltinRegistry } from './registry.js';
 export type { ProviderFactory, ProviderFactoryRequest, ProviderRegistry } from './registry.js';
 
@@ -66,6 +69,7 @@ export async function runCli(
       ...(parsed.snapshotIntervalTicks !== undefined
         ? { snapshotIntervalTicks: parsed.snapshotIntervalTicks }
         : {}),
+      providerOverrides: buildEnvProviderOverrides(process.env),
     });
     if (!parsed.quiet) {
       io.stdout.write(formatSummary(summary));

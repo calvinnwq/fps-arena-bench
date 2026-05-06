@@ -80,6 +80,16 @@ class ProviderDecisionError extends Error {
 const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLike<T> =>
   typeof (value as PromiseLike<T>).then === 'function';
 
+const getFallbackAction = (error: unknown): Action | undefined => {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const fallback = (error as { fallbackAction?: unknown }).fallbackAction;
+  try {
+    return fallback === undefined ? undefined : validateAction(fallback);
+  } catch {
+    return undefined;
+  }
+};
+
 const requestProviderAction = async (
   provider: ActionProvider,
   request: Parameters<ActionProvider['decide']>[0],
@@ -178,10 +188,11 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
         providerErrors += 1;
         if (error instanceof ProviderDecisionError) {
           latencyMsByContenderId.set(player.contenderId, error.latencyMs);
-          candidate = onError(player.contenderId, error.originalError);
+          candidate =
+            getFallbackAction(error.originalError) ?? onError(player.contenderId, error.originalError);
         } else {
           latencyMsByContenderId.set(player.contenderId, 0);
-          candidate = onError(player.contenderId, error);
+          candidate = getFallbackAction(error) ?? onError(player.contenderId, error);
         }
       }
       let action: Action;

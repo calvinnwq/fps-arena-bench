@@ -6,6 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",

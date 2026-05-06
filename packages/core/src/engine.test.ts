@@ -2,7 +2,7 @@ import type { Action } from '@fps-arena-bench/schemas';
 import { SCHEMA_VERSION } from '@fps-arena-bench/schemas';
 import { describe, expect, test } from 'vitest';
 
-import { applyTick, type AcceptedActionInput } from './engine.js';
+import { applyTick, applyTickWithoutHashes, type AcceptedActionInput } from './engine.js';
 import { hashMatchState } from './hash.js';
 import { generateObservation } from './observation.js';
 import { RULESET_V0_1 } from './ruleset.js';
@@ -91,6 +91,24 @@ describe('applyTick determinism', () => {
     });
 
     expect(hashMatchState(stateA)).not.toBe(hashMatchState(stateB));
+  });
+
+  test('applyTickWithoutHashes produces the same state mutation and events as applyTick', () => {
+    const map = buildOpenArenaMap();
+    const config = buildTestMatchConfig({ mapId: map.id, mapVersion: map.version });
+    const stateA = createMatchState({ config, map });
+    const stateB = createMatchState({ config, map });
+
+    const inputs: AcceptedActionInput[] = [
+      { contenderId: 'alpha', action: noopAction() },
+      { contenderId: 'bravo', action: noopAction() },
+    ];
+
+    const withHashes = applyTick(stateA, inputs);
+    const withoutHashes = applyTickWithoutHashes(stateB, inputs);
+
+    expect(withoutHashes.events).toEqual(withHashes.events);
+    expect(hashMatchState(stateB)).toBe(withHashes.postTickHash);
   });
 });
 

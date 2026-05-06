@@ -81,8 +81,8 @@ pnpm test
 pnpm build
 ```
 
-This branch includes the deterministic core engine, baseline bots, safe replay writer/reader, and
-bot-only CLI runner. A local bot duel can be generated with:
+This branch includes the deterministic core engine, baseline bots, local adapters, safe replay writer/reader, and
+CLI runner. A local bot duel can be generated with:
 
 ```bash
 pnpm build
@@ -94,7 +94,9 @@ node packages/cli/dist/index.js run \
 
 `run` also accepts `-c`, `-m`, `-o`/`--out-dir`, `--snapshot-interval <ticks>` to include hash-only replay snapshots, and `--quiet`/`-q` to suppress the stdout summary. Use `help`, `--help`, or `-h` for usage. The output directory contains `replay.safe.json` and `result.json`; CLI exit codes are `0` for success/help, `1` for match execution failures, and `2` for argument errors.
 
-The web replay viewer and harness adapters are still later v0.1 work.
+The generated `replay.safe.json` can be opened in the local top-down web replay viewer at `apps/web`. After `pnpm build`, open `apps/web/index.html` in a modern browser (or serve `apps/web` over a simple local HTTP server) and use the file picker to load the artifact. See [docs/web-viewer.md](docs/web-viewer.md) for the full flow, controls, error handling, and privacy guarantees.
+
+The zero-credential adapter path is `configs/examples/mock-duel.json`, which runs the deterministic mock adapter through the same prompt -> JSON -> action-schema parse loop used by local model adapters. Ollama and Claude CLI examples live in `configs/examples/ollama-vs-baseline.json` and `configs/examples/claude-cli-vs-baseline.json`; both use strict match configs plus provider factory injection or CLI environment variables for local runtime details. See [docs/adapters.md](docs/adapters.md) for the Ollama factory/env path, the Claude CLI harness lifecycle, and the optional local smoke pattern for an already-authenticated `claude` CLI.
 
 ## Non-goals for v0.1
 

@@ -4,10 +4,20 @@
   "private": true,
   "description": "Local replay viewer and future dashboard for FPS Arena Bench.",
   "type": "module",
+  "sideEffects": false,
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node ./scripts/bundle.mjs",
+    "build:bundle": "node ./scripts/bundle.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
     "lint": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@fps-arena-bench/core": "workspace:*",
+    "@fps-arena-bench/replay": "workspace:*",
+    "@fps-arena-bench/schemas": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.7"
   }
 }

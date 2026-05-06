@@ -1,15 +1,27 @@
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { SCHEMA_VERSION, validateReplaySafeArtifact } from '@fps-arena-bench/schemas';
+
 import { runCli } from './index.js';
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const defaultMapPath = join(repoRoot, 'maps/default-arena.json');
 const defaultConfigPath = join(repoRoot, 'configs/examples/bot-duel.json');
+const mockConfigPath = join(repoRoot, 'configs/examples/mock-duel.json');
+const claudeCliConfigPath = join(repoRoot, 'configs/examples/claude-cli-vs-baseline.json');
 
 const captureStreams = () => {
   const stdoutChunks: string[] = [];
@@ -73,6 +85,106 @@ describe('runCli', () => {
     const stderr = stderrChunks.join('');
     expect(stderr).toMatch(/--config/);
     expect(stderr).toMatch(/Usage:/);
+  });
+
+  it('runs the mock-duel example end-to-end and writes valid replay/result files', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'fps-cli-mock-'));
+    const { io, stdoutChunks } = captureStreams();
+    try {
+      const code = await runCli(
+        ['run', '--config', mockConfigPath, '--map', defaultMapPath, '--out', outDir],
+        io,
+      );
+      expect(code).toBe(0);
+      const summary = stdoutChunks.join('');
+      expect(summary).toMatch(/match: mock-duel/);
+      expect(summary).toMatch(/schemaViolations: 0/);
+      expect(summary).toMatch(/providerErrors: 0/);
+      const written = readdirSync(outDir).sort();
+      expect(written).toEqual(['replay.safe.json', 'result.json']);
+      const replayJson = readFileSync(join(outDir, 'replay.safe.json'), 'utf8');
+      validateReplaySafeArtifact(JSON.parse(replayJson) as unknown);
+      expect(replayJson).not.toMatch(/raw[_-]?prompt/i);
+      expect(replayJson).not.toMatch(/raw[_-]?output/i);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('enables the claude-cli example from environment variables with a fake local executable', async () => {
+    const tmpRoot = mkdtempSync(join(tmpdir(), 'fps-cli-env-claude-'));
+    const fakeBinDir = join(tmpRoot, 'bin');
+    const outDir = join(tmpRoot, 'out');
+    const configPath = join(tmpRoot, 'claude-short.json');
+    const fakeClaudePath = join(fakeBinDir, 'claude');
+    const previousEnv = {
+      PATH: process.env.PATH,
+      FPS_ARENA_ENABLE_CLAUDE_CLI: process.env.FPS_ARENA_ENABLE_CLAUDE_CLI,
+      FPS_ARENA_CLAUDE_COMMAND: process.env.FPS_ARENA_CLAUDE_COMMAND,
+      FPS_ARENA_CLAUDE_TIMEOUT_MS: process.env.FPS_ARENA_CLAUDE_TIMEOUT_MS,
+    };
+    try {
+      const shortConfig = {
+        ...JSON.parse(readFileSync(claudeCliConfigPath, 'utf8')),
+        maxTicks: 4,
+        actionTimeoutMs: 5000,
+      };
+      writeFileSync(configPath, `${JSON.stringify(shortConfig, null, 2)}\n`, 'utf8');
+      mkdirSync(fakeBinDir, { recursive: true });
+      writeFileSync(
+        fakeClaudePath,
+        [
+          '#!/bin/sh',
+          'cat >/dev/null',
+          `printf '%s\\n' '${JSON.stringify({ schemaVersion: SCHEMA_VERSION, type: 'noop' })}'`,
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      chmodSync(fakeClaudePath, 0o755);
+
+      process.env.PATH = `${fakeBinDir}${process.platform === 'win32' ? ';' : ':'}${
+        previousEnv.PATH ?? ''
+      }`;
+      process.env.FPS_ARENA_ENABLE_CLAUDE_CLI = '1';
+      process.env.FPS_ARENA_CLAUDE_COMMAND = 'claude';
+      process.env.FPS_ARENA_CLAUDE_TIMEOUT_MS = '5000';
+
+      const { io, stdoutChunks } = captureStreams();
+      const code = await runCli(
+        ['run', '--config', configPath, '--map', defaultMapPath, '--out', outDir],
+        io,
+      );
+
+      expect(code).toBe(0);
+      expect(stdoutChunks.join('')).toMatch(/match: claude-cli-vs-baseline/);
+      const replay = validateReplaySafeArtifact(
+        JSON.parse(readFileSync(join(outDir, 'replay.safe.json'), 'utf8')) as unknown,
+      );
+      expect(replay.config.contenders.some((entry) => entry.adapterId === 'claude-cli')).toBe(true);
+      const replayJson = readFileSync(join(outDir, 'replay.safe.json'), 'utf8');
+      expect(replayJson).not.toMatch(/raw[_-]?prompt/i);
+      expect(replayJson).not.toMatch(/raw[_-]?output/i);
+    } finally {
+      if (previousEnv.PATH === undefined) delete process.env.PATH;
+      else process.env.PATH = previousEnv.PATH;
+      if (previousEnv.FPS_ARENA_ENABLE_CLAUDE_CLI === undefined) {
+        delete process.env.FPS_ARENA_ENABLE_CLAUDE_CLI;
+      } else {
+        process.env.FPS_ARENA_ENABLE_CLAUDE_CLI = previousEnv.FPS_ARENA_ENABLE_CLAUDE_CLI;
+      }
+      if (previousEnv.FPS_ARENA_CLAUDE_COMMAND === undefined) {
+        delete process.env.FPS_ARENA_CLAUDE_COMMAND;
+      } else {
+        process.env.FPS_ARENA_CLAUDE_COMMAND = previousEnv.FPS_ARENA_CLAUDE_COMMAND;
+      }
+      if (previousEnv.FPS_ARENA_CLAUDE_TIMEOUT_MS === undefined) {
+        delete process.env.FPS_ARENA_CLAUDE_TIMEOUT_MS;
+      } else {
+        process.env.FPS_ARENA_CLAUDE_TIMEOUT_MS = previousEnv.FPS_ARENA_CLAUDE_TIMEOUT_MS;
+      }
+      rmSync(tmpRoot, { recursive: true, force: true });
+    }
   });
 
   it('returns exit code 1 when the command throws', async () => {

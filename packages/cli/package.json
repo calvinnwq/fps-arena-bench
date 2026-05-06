@@ -16,6 +16,7 @@
     "fps-arena-bench": "dist/index.js"
   },
   "dependencies": {
+    "@fps-arena-bench/adapters": "workspace:*",
     "@fps-arena-bench/bots": "workspace:*",
     "@fps-arena-bench/contracts": "workspace:*",
     "@fps-arena-bench/core": "workspace:*",

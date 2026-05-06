@@ -152,6 +152,10 @@ export async function runMatchCommand(
 
   const fallbackActions =
     matchOutcome.providerErrors + matchOutcome.schemaViolations + matchOutcome.timeouts;
+  // invalidJson and repairAttempts are v0 stubs — the engine surfaces
+  // invalid-json and schema-failure adapter errors together as schemaViolations
+  // without per-code counts, so we cannot populate them without a separate
+  // tally at the harness level.
   const artifact: ReplaySafeArtifact = recorder.build({
     state: matchOutcome.state,
     reliability: {

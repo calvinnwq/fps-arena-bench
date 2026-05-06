@@ -56,5 +56,5 @@ export type { AxisAlignedRectangle } from './visibility.js';
 
 export { generateObservation, generateObservations } from './observation.js';
 
-export { applyTick } from './engine.js';
-export type { AcceptedActionInput, TickEvent, TickResult } from './engine.js';
+export { applyTick, applyTickWithoutHashes } from './engine.js';
+export type { AcceptedActionInput, TickEvent, TickEventsResult, TickResult } from './engine.js';
