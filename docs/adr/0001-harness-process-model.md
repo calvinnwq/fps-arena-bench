@@ -6,7 +6,7 @@ Accepted for MVP.
 
 ## Context
 
-FPS Arena Bench v0.1 needs harness adapters for local CLIs, starting with Claude CLI and later expanding to Codex CLI and OpenCode CLI. These adapters run tools that may read local authenticated CLI state, emit malformed output, hang, or leave child processes behind. The benchmark also needs reliable latency and timeout metrics, safe replay artifacts, and a zero-surprise boundary around what local context is exposed.
+FPS Arena Bench v0.1 needs harness adapters for local CLIs, including Claude CLI, Codex CLI, and OpenCode CLI. These adapters run tools that may read local authenticated CLI state, emit malformed output, hang, or leave child processes behind. The benchmark also needs reliable latency and timeout metrics, safe replay artifacts, and a zero-surprise boundary around what local context is exposed.
 
 The main process model options are:
 

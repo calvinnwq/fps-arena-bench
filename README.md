@@ -17,12 +17,11 @@ A clean checkout should support:
 - top-down local web replay viewer for saved replays
 - zero-credential demo path with baseline bots and/or mock adapter
 - mock/Ollama local adapter path
-- Claude CLI harness adapter using the user's already-authenticated local Claude CLI state
+- Claude, Codex, and OpenCode CLI harness adapters using the user's already-authenticated local CLI state
 - raw tactical, reliability, and latency metrics reported separately
 
 ### v0.2 — multi-harness scored batch
 
-- Codex CLI and OpenCode CLI adapters immediately after Claude
 - scored batch/tournament mode across seed suites and spawn permutations
 - JSON and CSV summaries
 - adapter doctor checks and harness diagnostics
