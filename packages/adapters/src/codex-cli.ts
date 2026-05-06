@@ -15,7 +15,7 @@ export type { SpawnLike, SpawnLikeOptions, SpawnLikeOutcome };
 
 export const CODEX_CLI_DEFAULT_ADAPTER_ID = 'codex-cli';
 export const CODEX_CLI_DEFAULT_COMMAND = 'codex';
-export const CODEX_CLI_DEFAULT_ARGS: readonly string[] = ['--full-auto', '--quiet'];
+export const CODEX_CLI_DEFAULT_ARGS: readonly string[] = ['exec', '--full-auto', '--quiet'];
 export const CODEX_CLI_DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 export const CODEX_CLI_DEFAULT_TEMP_DIR_PREFIX = 'fps-arena-bench-codex-cli-';
 export const CODEX_CLI_DEFAULT_ENV_ALLOWLIST: readonly string[] = ['PATH', 'HOME'];
@@ -211,10 +211,10 @@ export class CodexCliAdapter implements ActionProvider {
     try {
       outcome = await this.spawnImpl({
         command: this.command,
-        args: this.args,
+        args: [...this.args, prompt],
         cwd,
         env: this.buildEnv(),
-        stdin: prompt,
+        stdin: '',
         signal,
         maxStdoutBytes: this.maxStdoutBytes,
         maxStderrBytes: this.maxStderrBytes,

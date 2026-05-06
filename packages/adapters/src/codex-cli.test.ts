@@ -105,7 +105,7 @@ describe('CodexCliAdapter', () => {
     expect(adapter.metadata.displayName).toBe('Codex CLI Custom');
   });
 
-  it('spawns the configured command with prompt-on-stdin in a per-request temp directory', async () => {
+  it('spawns the configured command with prompt as the exec argument in a per-request temp directory', async () => {
     const spawnImpl = vi.fn<SpawnLike>(async () => exitWith(0, JSON.stringify(NOOP_ACTION)));
     const { fs, record } = makeFakeFs();
     const adapter = new CodexCliAdapter({ spawnImpl, fs });
@@ -114,11 +114,11 @@ describe('CodexCliAdapter', () => {
     expect(spawnImpl).toHaveBeenCalledTimes(1);
     const opts: SpawnLikeOptions = spawnImpl.mock.calls[0]![0];
     expect(opts.command).toBe(CODEX_CLI_DEFAULT_COMMAND);
-    expect(opts.args).toEqual([...CODEX_CLI_DEFAULT_ARGS]);
+    expect(opts.args.slice(0, CODEX_CLI_DEFAULT_ARGS.length)).toEqual([...CODEX_CLI_DEFAULT_ARGS]);
+    const prompt = opts.args.at(-1);
     expect(opts.cwd).toMatch(/fake-1$/);
-    expect(typeof opts.stdin).toBe('string');
-    expect(opts.stdin.length).toBeGreaterThan(0);
-    expect(opts.stdin).toContain(`Prompt template version: ${ACTION_PROMPT_TEMPLATE_VERSION}`);
+    expect(opts.stdin).toBe('');
+    expect(prompt).toContain(`Prompt template version: ${ACTION_PROMPT_TEMPLATE_VERSION}`);
     expect(record.mkdtempCalls.length).toBe(1);
   });
 
@@ -129,12 +129,13 @@ describe('CodexCliAdapter', () => {
       spawnImpl,
       fs,
       command: '/usr/local/bin/codex',
-      args: ['--full-auto', '--quiet', '--model', 'gpt-4'],
+      args: ['exec', '--full-auto', '--quiet', '--model', 'gpt-4'],
     });
     await adapter.decide(buildRequest());
     const opts: SpawnLikeOptions = spawnImpl.mock.calls[0]![0];
     expect(opts.command).toBe('/usr/local/bin/codex');
-    expect(opts.args).toEqual(['--full-auto', '--quiet', '--model', 'gpt-4']);
+    expect(opts.args.slice(0, -1)).toEqual(['exec', '--full-auto', '--quiet', '--model', 'gpt-4']);
+    expect(opts.args.at(-1)).toContain(`Prompt template version: ${ACTION_PROMPT_TEMPLATE_VERSION}`);
   });
 
   it('parses a JSON action from stdout on a clean zero-exit run', async () => {

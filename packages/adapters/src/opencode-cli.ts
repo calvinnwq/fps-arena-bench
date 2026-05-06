@@ -15,7 +15,7 @@ export type { SpawnLike, SpawnLikeOptions, SpawnLikeOutcome };
 
 export const OPENCODE_CLI_DEFAULT_ADAPTER_ID = 'opencode-cli';
 export const OPENCODE_CLI_DEFAULT_COMMAND = 'opencode';
-export const OPENCODE_CLI_DEFAULT_ARGS: readonly string[] = ['run', '--no-interactive'];
+export const OPENCODE_CLI_DEFAULT_ARGS: readonly string[] = ['run'];
 export const OPENCODE_CLI_DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 export const OPENCODE_CLI_DEFAULT_TEMP_DIR_PREFIX = 'fps-arena-bench-opencode-cli-';
 export const OPENCODE_CLI_DEFAULT_ENV_ALLOWLIST: readonly string[] = ['PATH', 'HOME'];
@@ -211,10 +211,10 @@ export class OpenCodeCliAdapter implements ActionProvider {
     try {
       outcome = await this.spawnImpl({
         command: this.command,
-        args: this.args,
+        args: [...this.args, prompt],
         cwd,
         env: this.buildEnv(),
-        stdin: prompt,
+        stdin: '',
         signal,
         maxStdoutBytes: this.maxStdoutBytes,
         maxStderrBytes: this.maxStderrBytes,
