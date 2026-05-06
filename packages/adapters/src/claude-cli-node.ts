@@ -139,13 +139,17 @@ export const createNodeSpawnLike = (factoryOptions: NodeSpawnLikeOptions = {}): 
         settle({ kind: 'spawn-error', message: error.message });
       });
 
-      child.on('close', (code: number | null) => {
+      child.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
         if (outputCapStream !== null) {
           settle({ kind: 'output-cap', stream: outputCapStream, stdout, stderr });
           return;
         }
         if (options.signal?.aborted === true) {
           settle({ kind: 'aborted', stdout, stderr });
+          return;
+        }
+        if (signal !== null) {
+          settle({ kind: 'exit', code: code ?? 1, signal, stdout, stderr });
           return;
         }
         settle({ kind: 'exit', code: code ?? 0, stdout, stderr });

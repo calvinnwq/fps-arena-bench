@@ -226,13 +226,12 @@ describe('OllamaAdapter', () => {
     });
   });
 
-  it('returns fallbackAction when HTTP fails and a fallback is configured', async () => {
+  it('surfaces fallbackAction when HTTP fails and a fallback is configured', async () => {
     const fetchImpl: FetchLike = async () =>
       respondWith('Internal Server Error', { ok: false, status: 503 });
     const fallback: Action = { schemaVersion: SCHEMA_VERSION, type: 'noop' };
     const adapter = new OllamaAdapter({ model: 'llama3', fetchImpl, fallbackAction: fallback });
-    const action = await adapter.decide(buildRequest());
-    expect(action).toEqual(fallback);
+    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({ fallbackAction: fallback });
   });
 
   it('classifies invalid envelope JSON as process-error', async () => {
@@ -280,7 +279,7 @@ describe('OllamaAdapter', () => {
     });
   });
 
-  it('returns fallbackAction when model output fails to parse and a fallback is configured', async () => {
+  it('surfaces fallbackAction when model output fails to parse and a fallback is configured', async () => {
     const fetchImpl: FetchLike = async () => ollamaResponse('not json at all');
     const fallback: Action = {
       schemaVersion: SCHEMA_VERSION,
@@ -288,8 +287,7 @@ describe('OllamaAdapter', () => {
       direction: { x: 1, y: 0 },
     };
     const adapter = new OllamaAdapter({ model: 'llama3', fetchImpl, fallbackAction: fallback });
-    const action = await adapter.decide(buildRequest());
-    expect(action).toEqual(fallback);
+    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({ fallbackAction: fallback });
   });
 
   it('forwards temperature into the request body when provided', async () => {

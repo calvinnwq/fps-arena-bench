@@ -42,6 +42,9 @@ importers:
       '@fps-arena-bench/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@fps-arena-bench/replay':
+        specifier: workspace:*
+        version: link:../replay
       '@fps-arena-bench/schemas':
         specifier: workspace:*
         version: link:../schemas

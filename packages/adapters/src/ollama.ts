@@ -18,6 +18,7 @@ export const OLLAMA_GENERATE_PATH = '/api/generate';
 export interface FetchLikeResponse {
   readonly ok: boolean;
   readonly status: number;
+  readonly body?: ReadableStream<Uint8Array> | null;
   text(): Promise<string>;
 }
 
@@ -41,13 +42,65 @@ export interface OllamaAdapterOptions {
 
 export class OllamaAdapterError extends Error {
   readonly adapterError: AdapterError;
+  readonly fallbackAction: Action | undefined;
 
-  constructor(adapterError: AdapterError) {
+  constructor(adapterError: AdapterError, fallbackAction?: Action) {
     super(`[ollama-adapter:${adapterError.code}] ${adapterError.message}`);
     this.name = 'OllamaAdapterError';
     this.adapterError = adapterError;
+    this.fallbackAction = fallbackAction;
   }
 }
+
+const bodyByteLimit = (maxOutputBytes: number): number => Math.max(maxOutputBytes * 4, 1024 * 1024);
+
+const readCappedResponseText = async (
+  adapterId: string,
+  response: FetchLikeResponse,
+  maxBytes: number,
+): Promise<string> => {
+  if (response.body === undefined || response.body === null) {
+    const text = await response.text();
+    if (Buffer.byteLength(text, 'utf8') > maxBytes) {
+      throw new OllamaAdapterError(
+        buildError(adapterId, 'output-cap', 'Ollama response body exceeded byte cap.', false),
+      );
+    }
+    return text;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      bytes += result.value.byteLength;
+      if (bytes > maxBytes) {
+        await reader.cancel();
+        throw new OllamaAdapterError(
+          buildError(
+            adapterId,
+            'output-cap',
+            'Ollama response body exceeded byte cap.',
+            false,
+          ),
+        );
+      }
+      chunks.push(result.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const merged = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
+};
 
 const buildError = (
   adapterId: string,
@@ -156,14 +209,87 @@ export class OllamaAdapter implements ActionProvider {
       timeoutController.abort('timeout');
     }, this.requestTimeoutMs);
 
-    let response: FetchLikeResponse;
     try {
-      response = await this.fetchImpl(url, {
+      const response = await this.fetchImpl(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
         signal: timeoutController.signal,
       });
+
+      if (!response.ok) {
+        throw new OllamaAdapterError(
+          buildError(
+            adapterId,
+            'process-error',
+            `Ollama returned non-OK HTTP status ${response.status}.`,
+            true,
+          ),
+          this.fallbackAction,
+        );
+      }
+
+      let bodyText: string;
+      try {
+        bodyText = await readCappedResponseText(
+          adapterId,
+          response,
+          bodyByteLimit(this.maxOutputBytes),
+        );
+      } catch (caught) {
+        if (caught instanceof OllamaAdapterError) throw caught;
+        throw new OllamaAdapterError(
+          buildError(
+            adapterId,
+            'process-error',
+            `Could not read Ollama response body: ${errorMessage(caught)}`,
+            true,
+          ),
+        );
+      }
+
+      let parsedBody: unknown;
+      try {
+        parsedBody = JSON.parse(bodyText);
+      } catch {
+        throw new OllamaAdapterError(
+          buildError(
+            adapterId,
+            'process-error',
+            'Ollama response body was not valid JSON envelope.',
+            true,
+          ),
+          this.fallbackAction,
+        );
+      }
+
+      if (
+        typeof parsedBody !== 'object' ||
+        parsedBody === null ||
+        typeof (parsedBody as { response?: unknown }).response !== 'string'
+      ) {
+        throw new OllamaAdapterError(
+          buildError(
+            adapterId,
+            'process-error',
+            'Ollama response envelope did not include a string "response" field.',
+            true,
+          ),
+          this.fallbackAction,
+        );
+      }
+
+      const rawOutput = (parsedBody as { response: string }).response;
+      const parseResult = parseActionResponse(rawOutput, {
+        adapterId,
+        maxOutputBytes: this.maxOutputBytes,
+      });
+
+      if (!parseResult.ok) {
+        throw new OllamaAdapterError(parseResult.error, this.fallbackAction);
+      }
+
+      return parseResult.action;
     } catch (caught) {
       if (externalSignal?.aborted === true) {
         throw new OllamaAdapterError(
@@ -180,6 +306,7 @@ export class OllamaAdapter implements ActionProvider {
           ),
         );
       }
+      if (caught instanceof OllamaAdapterError) throw caught;
       throw new OllamaAdapterError(
         buildError(
           adapterId,
@@ -194,79 +321,5 @@ export class OllamaAdapter implements ActionProvider {
         externalSignal.removeEventListener('abort', onExternalAbort);
       }
     }
-
-    if (!response.ok) {
-      const fallback = this.fallbackOrNull();
-      if (fallback !== null) return fallback;
-      throw new OllamaAdapterError(
-        buildError(
-          adapterId,
-          'process-error',
-          `Ollama returned non-OK HTTP status ${response.status}.`,
-          true,
-        ),
-      );
-    }
-
-    let bodyText: string;
-    try {
-      bodyText = await response.text();
-    } catch (caught) {
-      throw new OllamaAdapterError(
-        buildError(
-          adapterId,
-          'process-error',
-          `Could not read Ollama response body: ${errorMessage(caught)}`,
-          true,
-        ),
-      );
-    }
-
-    let parsedBody: unknown;
-    try {
-      parsedBody = JSON.parse(bodyText);
-    } catch {
-      throw new OllamaAdapterError(
-        buildError(
-          adapterId,
-          'process-error',
-          'Ollama response body was not valid JSON envelope.',
-          true,
-        ),
-      );
-    }
-
-    if (
-      typeof parsedBody !== 'object' ||
-      parsedBody === null ||
-      typeof (parsedBody as { response?: unknown }).response !== 'string'
-    ) {
-      throw new OllamaAdapterError(
-        buildError(
-          adapterId,
-          'process-error',
-          'Ollama response envelope did not include a string "response" field.',
-          true,
-        ),
-      );
-    }
-
-    const rawOutput = (parsedBody as { response: string }).response;
-    const parseResult = parseActionResponse(rawOutput, {
-      adapterId,
-      maxOutputBytes: this.maxOutputBytes,
-    });
-
-    if (!parseResult.ok) {
-      const fallback = this.fallbackOrNull();
-      if (fallback !== null) return fallback;
-      throw new OllamaAdapterError(parseResult.error);
-    }
-
-    return parseResult.action;
-  }
-
-  private fallbackOrNull(): Action | null {
-    return this.fallbackAction ?? null;
   }
 }

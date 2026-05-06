@@ -22,6 +22,8 @@ export type LoadReplayResult =
 
 const sanitize = (message: string): string => redactString(message);
 
+const utf8ByteLength = (input: string): number => new TextEncoder().encode(input).byteLength;
+
 const fail = (kind: LoadReplayErrorKind, message: string): LoadReplayResult => ({
   ok: false,
   error: { kind, message: sanitize(message) },
@@ -34,7 +36,7 @@ export function loadReplayFromString(input: string): LoadReplayResult {
   if (input.length === 0) {
     return fail('invalid-json', 'Replay input is empty.');
   }
-  if (input.length > MAX_REPLAY_INPUT_BYTES) {
+  if (utf8ByteLength(input) > MAX_REPLAY_INPUT_BYTES) {
     return fail('invalid-json', `Replay input exceeds the ${MAX_REPLAY_INPUT_BYTES} byte limit.`);
   }
 

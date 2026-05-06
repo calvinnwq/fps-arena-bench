@@ -107,6 +107,14 @@ describe('loadReplayFromString', () => {
     expect(result.error.kind).toBe('invalid-json');
   });
 
+  it('applies the size cap to UTF-8 bytes, not string length', () => {
+    const oversized = 'é'.repeat(Math.floor(MAX_REPLAY_INPUT_BYTES / 2) + 1);
+    const result = loadReplayFromString(oversized);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.kind).toBe('invalid-json');
+  });
+
   it('returns invalid-schema error for JSON that is not a replay artifact', () => {
     const result = loadReplayFromString(JSON.stringify({ hello: 'world' }));
     expect(result.ok).toBe(false);

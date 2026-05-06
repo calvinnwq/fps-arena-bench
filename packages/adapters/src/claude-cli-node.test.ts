@@ -122,6 +122,19 @@ describe('createNodeSpawnLike', () => {
     expect(outcome.kind).toBe('aborted');
   }, 10_000);
 
+  it('preserves non-abort process termination signals', async () => {
+    const spawnImpl = createNodeSpawnLike({ killGraceMs: 50 });
+    const outcome = await spawnImpl(
+      baseSpawnOptions({
+        args: ['-e', 'process.kill(process.pid, "SIGTERM")'],
+      }),
+    );
+    expect(outcome.kind).toBe('exit');
+    if (outcome.kind !== 'exit') throw new Error('expected exit');
+    expect(outcome.signal).toBe('SIGTERM');
+    expect(outcome.code).not.toBe(0);
+  }, 10_000);
+
   it('runs in the configured cwd', async () => {
     const spawnImpl = createNodeSpawnLike();
     const outcome = await spawnImpl(

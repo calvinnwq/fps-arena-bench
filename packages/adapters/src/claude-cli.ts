@@ -32,6 +32,7 @@ export type SpawnLikeOutcome =
   | {
       readonly kind: 'exit';
       readonly code: number;
+      readonly signal?: string;
       readonly stdout: string;
       readonly stderr: string;
     }
@@ -71,11 +72,13 @@ export interface ClaudeCliAdapterOptions {
 
 export class ClaudeCliAdapterError extends Error {
   readonly adapterError: AdapterError;
+  readonly fallbackAction: Action | undefined;
 
-  constructor(adapterError: AdapterError) {
+  constructor(adapterError: AdapterError, fallbackAction?: Action) {
     super(`[claude-cli-adapter:${adapterError.code}] ${adapterError.message}`);
     this.name = 'ClaudeCliAdapterError';
     this.adapterError = adapterError;
+    this.fallbackAction = fallbackAction;
   }
 }
 
@@ -284,8 +287,6 @@ export class ClaudeCliAdapter implements ActionProvider {
     }
 
     if (outcome.kind === 'spawn-error') {
-      const fallback = this.fallbackOrNull();
-      if (fallback !== null) return fallback;
       throw new ClaudeCliAdapterError(
         buildError(
           adapterId,
@@ -293,12 +294,23 @@ export class ClaudeCliAdapter implements ActionProvider {
           `Claude CLI failed to start: ${outcome.message}`,
           true,
         ),
+        this.fallbackAction,
+      );
+    }
+
+    if (outcome.signal !== undefined) {
+      throw new ClaudeCliAdapterError(
+        buildError(
+          adapterId,
+          'process-error',
+          `Claude CLI exited due to signal ${outcome.signal}: ${truncate(outcome.stderr.trim()) || 'no stderr'}`,
+          true,
+        ),
+        this.fallbackAction,
       );
     }
 
     if (outcome.code !== 0) {
-      const fallback = this.fallbackOrNull();
-      if (fallback !== null) return fallback;
       throw new ClaudeCliAdapterError(
         buildError(
           adapterId,
@@ -306,6 +318,7 @@ export class ClaudeCliAdapter implements ActionProvider {
           `Claude CLI exited with code ${outcome.code}: ${truncate(outcome.stderr.trim()) || 'no stderr'}`,
           true,
         ),
+        this.fallbackAction,
       );
     }
 
@@ -314,9 +327,7 @@ export class ClaudeCliAdapter implements ActionProvider {
       maxOutputBytes: this.maxStdoutBytes,
     });
     if (!parseResult.ok) {
-      const fallback = this.fallbackOrNull();
-      if (fallback !== null) return fallback;
-      throw new ClaudeCliAdapterError(parseResult.error);
+      throw new ClaudeCliAdapterError(parseResult.error, this.fallbackAction);
     }
 
     return parseResult.action;
@@ -337,7 +348,4 @@ export class ClaudeCliAdapter implements ActionProvider {
     return env;
   }
 
-  private fallbackOrNull(): Action | null {
-    return this.fallbackAction ?? null;
-  }
 }

@@ -1,6 +1,7 @@
 import {
   applyTickWithoutHashes,
   createMatchState,
+  hashMatchState,
   type AcceptedActionInput,
   type EndReason,
   type MatchState,
@@ -9,7 +10,7 @@ import {
   type PlayerState,
   type TickEvent,
 } from '@fps-arena-bench/core';
-import { parseReplaySafeArtifact } from '@fps-arena-bench/replay';
+import { buildResultSummary, parseReplaySafeArtifact } from '@fps-arena-bench/replay';
 import type {
   MapDefinition,
   MatchConfig,
@@ -102,6 +103,21 @@ const groupAcceptedActionsByTick = (
   return grouped;
 };
 
+const compareJson = (left: unknown, right: unknown): boolean =>
+  JSON.stringify(left) === JSON.stringify(right);
+
+const expectedResultFromState = (artifact: ReplaySafeArtifact, state: MatchState): ResultSummary => ({
+  ...buildResultSummary({
+    matchId: artifact.matchId,
+    config: artifact.config,
+    state,
+    latenciesMs: [],
+    reliability: artifact.result.reliability,
+    timeoutBudgetMs: artifact.result.latency.timeoutBudgetMs,
+  }),
+  latency: artifact.result.latency,
+});
+
 export function buildReplayTimeline(input: ReplaySafeArtifact | string): ReplayTimeline {
   const artifact = typeof input === 'string' ? parseReplaySafeArtifact(input) : input;
   let state: MatchState;
@@ -114,6 +130,11 @@ export function buildReplayTimeline(input: ReplaySafeArtifact | string): ReplayT
 
   const frames: TimelineFrame[] = [snapshotFrame(state, [])];
   const grouped = groupAcceptedActionsByTick(artifact);
+  const expectedHashes = new Map(artifact.stateHashes.map((entry) => [entry.tick, entry.hash]));
+  const initialHash = expectedHashes.get(0);
+  if (initialHash !== undefined && initialHash !== '' && initialHash !== hashMatchState(state)) {
+    throw new ReplayTimelineError('Replay artifact initial state hash does not match reconstructed state.');
+  }
 
   for (let tick = 0; tick < artifact.result.ticksElapsed; tick += 1) {
     if (state.status === 'finished') {
@@ -124,6 +145,19 @@ export function buildReplayTimeline(input: ReplaySafeArtifact | string): ReplayT
     const inputs = grouped.get(tick) ?? [];
     const result = applyTickWithoutHashes(state, inputs);
     frames.push(snapshotFrame(state, result.events));
+    const expectedHash = expectedHashes.get(state.tick);
+    if (expectedHash !== undefined && expectedHash !== hashMatchState(state)) {
+      throw new ReplayTimelineError(
+        `Replay artifact state hash for tick=${state.tick} does not match reconstructed state.`,
+      );
+    }
+  }
+
+  if (state.status !== 'finished') {
+    throw new ReplayTimelineError('Replay artifact result ends before the reconstructed match finished.');
+  }
+  if (!compareJson(artifact.result, expectedResultFromState(artifact, state))) {
+    throw new ReplayTimelineError('Replay artifact result does not match reconstructed final state.');
   }
 
   return {

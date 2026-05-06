@@ -212,4 +212,20 @@ describe('buildReplayTimeline', () => {
     const parsed = parseReplaySafeArtifact(tampered);
     expect(() => buildReplayTimeline(parsed)).toThrow(ReplayTimelineError);
   });
+
+  it('throws ReplayTimelineError when result disagrees with reconstructed state', () => {
+    const { artifact } = buildArtifact();
+    const tampered = JSON.parse(JSON.stringify(artifact));
+    tampered.result.winner = tampered.result.winner === 'alpha' ? 'bravo' : 'alpha';
+    const parsed = parseReplaySafeArtifact(tampered);
+    expect(() => buildReplayTimeline(parsed)).toThrow(ReplayTimelineError);
+  });
+
+  it('throws ReplayTimelineError when state hashes disagree with reconstructed state', () => {
+    const { artifact } = buildArtifact();
+    const tampered = JSON.parse(JSON.stringify(artifact));
+    tampered.stateHashes[tampered.stateHashes.length - 1].hash = `sha256:${'b'.repeat(64)}`;
+    const parsed = parseReplaySafeArtifact(tampered);
+    expect(() => buildReplayTimeline(parsed)).toThrow(ReplayTimelineError);
+  });
 });
