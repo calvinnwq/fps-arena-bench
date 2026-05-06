@@ -17,12 +17,11 @@ A clean checkout should support:
 - top-down local web replay viewer for saved replays
 - zero-credential demo path with baseline bots and/or mock adapter
 - mock/Ollama local adapter path
-- Claude CLI harness adapter using the user's already-authenticated local Claude CLI state
+- Claude, Codex, and OpenCode CLI harness adapters using the user's already-authenticated local CLI state
 - raw tactical, reliability, and latency metrics reported separately
 
 ### v0.2 — multi-harness scored batch
 
-- Codex CLI and OpenCode CLI adapters immediately after Claude
 - scored batch/tournament mode across seed suites and spawn permutations
 - JSON and CSV summaries
 - adapter doctor checks and harness diagnostics
@@ -96,7 +95,7 @@ node packages/cli/dist/index.js run \
 
 The generated `replay.safe.json` can be opened in the local top-down web replay viewer at `apps/web`. After `pnpm build`, open `apps/web/index.html` in a modern browser (or serve `apps/web` over a simple local HTTP server) and use the file picker to load the artifact. See [docs/web-viewer.md](docs/web-viewer.md) for the full flow, controls, error handling, and privacy guarantees.
 
-The zero-credential adapter path is `configs/examples/mock-duel.json`, which runs the deterministic mock adapter through the same prompt -> JSON -> action-schema parse loop used by local model adapters. Ollama and Claude CLI examples live in `configs/examples/ollama-vs-baseline.json` and `configs/examples/claude-cli-vs-baseline.json`; both use strict match configs plus provider factory injection or CLI environment variables for local runtime details. See [docs/adapters.md](docs/adapters.md) for the Ollama factory/env path, the Claude CLI harness lifecycle, and the optional local smoke pattern for an already-authenticated `claude` CLI.
+The zero-credential adapter path is `configs/examples/mock-duel.json`, which runs the deterministic mock adapter through the same prompt -> JSON -> action-schema parse loop used by local model adapters. Ollama, Claude CLI, Codex CLI, and OpenCode CLI examples live in `configs/examples/`; all use strict match configs plus provider factory injection or CLI environment variables for local runtime details. See [docs/adapters.md](docs/adapters.md) for the Ollama factory/env path, the Claude/Codex/OpenCode CLI harness lifecycles, and the optional local smoke patterns for an already-authenticated `claude`, `codex`, or `opencode` CLI.
 
 ## Non-goals for v0.1
 

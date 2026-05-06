@@ -58,3 +58,49 @@ export type {
   CreateClaudeCliProviderFactoryOptions,
   CreateNodeClaudeCliProviderFactoryOptions,
 } from './claude-cli-factory.js';
+
+export {
+  CODEX_CLI_DEFAULT_ADAPTER_ID,
+  CODEX_CLI_DEFAULT_ARGS,
+  CODEX_CLI_DEFAULT_COMMAND,
+  CODEX_CLI_DEFAULT_ENV_ALLOWLIST,
+  CODEX_CLI_DEFAULT_REQUEST_TIMEOUT_MS,
+  CODEX_CLI_DEFAULT_TEMP_DIR_PREFIX,
+  CodexCliAdapter,
+  CodexCliAdapterError,
+} from './codex-cli.js';
+export type { CodexCliAdapterOptions, CodexCliFileSystem } from './codex-cli.js';
+
+export {
+  createCodexCliProviderFactory,
+  createNodeCodexCliProviderFactory,
+} from './codex-cli-factory.js';
+export type {
+  CodexCliProviderFactory,
+  CodexCliProviderFactoryRequest,
+  CreateCodexCliProviderFactoryOptions,
+  CreateNodeCodexCliProviderFactoryOptions,
+} from './codex-cli-factory.js';
+
+export {
+  OPENCODE_CLI_DEFAULT_ADAPTER_ID,
+  OPENCODE_CLI_DEFAULT_ARGS,
+  OPENCODE_CLI_DEFAULT_COMMAND,
+  OPENCODE_CLI_DEFAULT_ENV_ALLOWLIST,
+  OPENCODE_CLI_DEFAULT_REQUEST_TIMEOUT_MS,
+  OPENCODE_CLI_DEFAULT_TEMP_DIR_PREFIX,
+  OpenCodeCliAdapter,
+  OpenCodeCliAdapterError,
+} from './opencode-cli.js';
+export type { OpenCodeCliAdapterOptions, OpenCodeCliFileSystem } from './opencode-cli.js';
+
+export {
+  createOpenCodeCliProviderFactory,
+  createNodeOpenCodeCliProviderFactory,
+} from './opencode-cli-factory.js';
+export type {
+  OpenCodeCliProviderFactory,
+  OpenCodeCliProviderFactoryRequest,
+  CreateOpenCodeCliProviderFactoryOptions,
+  CreateNodeOpenCodeCliProviderFactoryOptions,
+} from './opencode-cli-factory.js';
