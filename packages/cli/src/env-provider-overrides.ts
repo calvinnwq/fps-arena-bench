@@ -1,5 +1,7 @@
 import {
   createNodeClaudeCliProviderFactory,
+  createNodeCodexCliProviderFactory,
+  createNodeOpenCodeCliProviderFactory,
   createOllamaProviderFactory,
 } from '@fps-arena-bench/adapters';
 
@@ -12,6 +14,12 @@ export interface EnvProviderOverrides {
   readonly FPS_ARENA_ENABLE_CLAUDE_CLI?: string;
   readonly FPS_ARENA_CLAUDE_COMMAND?: string;
   readonly FPS_ARENA_CLAUDE_TIMEOUT_MS?: string;
+  readonly FPS_ARENA_ENABLE_CODEX_CLI?: string;
+  readonly FPS_ARENA_CODEX_COMMAND?: string;
+  readonly FPS_ARENA_CODEX_TIMEOUT_MS?: string;
+  readonly FPS_ARENA_ENABLE_OPENCODE_CLI?: string;
+  readonly FPS_ARENA_OPENCODE_COMMAND?: string;
+  readonly FPS_ARENA_OPENCODE_TIMEOUT_MS?: string;
 }
 
 const parsePositiveInteger = (value: string | undefined): number | undefined => {
@@ -48,6 +56,26 @@ export const buildEnvProviderOverrides = (
     overrides['claude-cli'] = createNodeClaudeCliProviderFactory({
       ...(isNonEmpty(env.FPS_ARENA_CLAUDE_COMMAND)
         ? { command: env.FPS_ARENA_CLAUDE_COMMAND }
+        : {}),
+      ...(timeout !== undefined ? { requestTimeoutMs: timeout } : {}),
+    });
+  }
+
+  if (isEnabled(env.FPS_ARENA_ENABLE_CODEX_CLI)) {
+    const timeout = parsePositiveInteger(env.FPS_ARENA_CODEX_TIMEOUT_MS);
+    overrides['codex-cli'] = createNodeCodexCliProviderFactory({
+      ...(isNonEmpty(env.FPS_ARENA_CODEX_COMMAND)
+        ? { command: env.FPS_ARENA_CODEX_COMMAND }
+        : {}),
+      ...(timeout !== undefined ? { requestTimeoutMs: timeout } : {}),
+    });
+  }
+
+  if (isEnabled(env.FPS_ARENA_ENABLE_OPENCODE_CLI)) {
+    const timeout = parsePositiveInteger(env.FPS_ARENA_OPENCODE_TIMEOUT_MS);
+    overrides['opencode-cli'] = createNodeOpenCodeCliProviderFactory({
+      ...(isNonEmpty(env.FPS_ARENA_OPENCODE_COMMAND)
+        ? { command: env.FPS_ARENA_OPENCODE_COMMAND }
         : {}),
       ...(timeout !== undefined ? { requestTimeoutMs: timeout } : {}),
     });
