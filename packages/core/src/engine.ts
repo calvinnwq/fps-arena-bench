@@ -517,6 +517,11 @@ export function applyTick(state: MatchState, inputs: readonly AcceptedActionInpu
   return { preTickHash, postTickHash, events };
 }
 
+/**
+ * Applies one tick to match state without computing state hashes.
+ * Intended for replay/timeline reconstruction paths that need the same mutations
+ * and events as `applyTick` without pre/post hash overhead.
+ */
 export function applyTickWithoutHashes(
   state: MatchState,
   inputs: readonly AcceptedActionInput[],

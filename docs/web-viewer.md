@@ -1,6 +1,6 @@
 # Web replay viewer
 
-`apps/web` is a local, top-down 2D spectator for `replay.safe.json` artifacts. It runs as a static HTML page backed by a single ESM browser bundle; there is no server, account, network call, or credential prompt. The viewer reuses `@fps-arena-bench/replay` for validation/reconstruction so it cannot accept artifacts that the CLI would reject.
+`apps/web` is a local, top-down 2D spectator for `replay.safe.json` artifacts. It runs as a static HTML page backed by a single ESM browser bundle; there is no server, account, network call, or credential prompt. The viewer validates artifacts with `@fps-arena-bench/schemas` and reconstructs timelines through its browser-safe core path so it cannot accept artifacts that the CLI would reject.
 
 ## Generate a replay
 
@@ -55,12 +55,14 @@ The side panel shows match id, map id/version, status, winner, duration, reliabi
 
 ## Errors
 
-The viewer rejects unsafe or malformed input with a categorized, redacted error message and never logs raw paths or environment details to the user-facing UI:
+The viewer rejects unsafe or malformed loaded input with a categorized, redacted error message in the side panel and never logs raw paths or environment details to the user-facing UI:
 
 - `invalid-json` — empty, non-JSON, or oversized input (>32 MiB cap).
 - `invalid-schema` — fails `validateReplaySafeArtifact` from `@fps-arena-bench/schemas`.
 - `invalid-timeline` — passes schema validation but the engine reconstruction disagrees with the recorded `result.ticksElapsed` or final state.
-- `read-error` — the browser File API failed to read the selected file.
+- `unknown` — an unexpected loader or reconstruction failure.
+
+File-picker failures such as `no-file`, `too-large`, and `read-error` are reported through the optional file-input `onResult` callback before a replay reaches the viewer.
 
 Every error message is run through `redactString` from `@fps-arena-bench/replay`, which strips absolute and home-relative paths, bearer tokens, JWTs, AWS/GitHub tokens, PEM blocks, and URLs with embedded credentials before it reaches the panel.
 
