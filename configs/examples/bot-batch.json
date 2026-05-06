@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "fps-arena-bench.batch.v0.2",
+  "id": "bot-batch",
+  "rulesetVersion": "ruleset.v0.1",
+  "seeds": [7, 23],
+  "maps": [{ "id": "default-arena", "version": "0.1.0", "path": "../../maps/default-arena.json" }],
+  "contenders": [
+    { "id": "alpha", "adapterId": "random-bot", "displayName": "Alpha" },
+    { "id": "bravo", "adapterId": "chaser-bot", "displayName": "Bravo" },
+    { "id": "charlie", "adapterId": "pickup-seeker-bot", "displayName": "Charlie" }
+  ],
+  "matchups": [
+    { "id": "random-vs-chaser", "contenderIds": ["alpha", "bravo"] },
+    { "id": "random-vs-pickup", "contenderIds": ["alpha", "charlie"] }
+  ],
+  "spawnPermutations": [
+    [0, 1],
+    [1, 0]
+  ],
+  "maxTicks": 200,
+  "actionTimeoutMs": 1000,
+  "invalidActionPolicy": { "maxInvalidActions": 3, "fallbackAction": "noop" },
+  "capture": { "safeReplay": true, "privateDebug": false },
+  "failurePolicy": { "onMatchFailure": "continue" }
+}

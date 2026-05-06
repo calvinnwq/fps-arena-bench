@@ -854,6 +854,181 @@ export const AdapterMetadataSchema = z
   })
   .strict();
 
+const BatchMapEntrySchema = z
+  .object({
+    id: IdSchema,
+    version: VersionSchema,
+    path: z.string().min(1),
+  })
+  .strict();
+
+const BatchContenderSchema = z
+  .object({
+    id: IdSchema,
+    adapterId: IdSchema,
+    displayName: z.string().min(1).optional(),
+  })
+  .strict();
+
+const BatchMatchupSchema = z
+  .object({
+    id: IdSchema,
+    contenderIds: z.array(IdSchema).min(2),
+  })
+  .strict();
+
+export const BATCH_CONFIG_SCHEMA_VERSION = 'fps-arena-bench.batch.v0.2';
+
+export const BatchConfigSchema = z
+  .object({
+    schemaVersion: z.literal(BATCH_CONFIG_SCHEMA_VERSION),
+    id: IdSchema,
+    rulesetVersion: VersionSchema,
+    seeds: z.array(z.number().int().nonnegative()).min(1),
+    maps: z.array(BatchMapEntrySchema).min(1),
+    contenders: z.array(BatchContenderSchema).min(2),
+    matchups: z.array(BatchMatchupSchema).min(1),
+    spawnPermutations: z.array(z.array(z.number().int().nonnegative()).min(2)).min(1),
+    maxTicks: z.number().int().positive(),
+    actionTimeoutMs: z.number().int().positive(),
+    invalidActionPolicy: z
+      .object({
+        maxInvalidActions: z.number().int().nonnegative(),
+        fallbackAction: z.enum(['noop', 'repeat-last-valid']),
+      })
+      .strict(),
+    capture: z
+      .object({
+        safeReplay: z.boolean(),
+        privateDebug: z.boolean(),
+      })
+      .strict(),
+    failurePolicy: z
+      .object({
+        onMatchFailure: z.enum(['continue', 'stop']),
+      })
+      .strict(),
+    runLimits: z
+      .object({
+        maxMatches: z.number().int().positive().optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .superRefine((batch, context) => {
+    const contenderIds = new Set<string>();
+    for (const [index, contender] of batch.contenders.entries()) {
+      if (contenderIds.has(contender.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['contenders', index, 'id'],
+          message: 'Contender id must be unique.',
+        });
+      }
+      contenderIds.add(contender.id);
+    }
+
+    const mapIds = new Set<string>();
+    for (const [index, map] of batch.maps.entries()) {
+      if (mapIds.has(map.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['maps', index, 'id'],
+          message: 'Map id must be unique.',
+        });
+      }
+      mapIds.add(map.id);
+    }
+
+    const matchupIds = new Set<string>();
+    for (const [index, matchup] of batch.matchups.entries()) {
+      if (matchupIds.has(matchup.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['matchups', index, 'id'],
+          message: 'Matchup id must be unique.',
+        });
+      }
+      matchupIds.add(matchup.id);
+
+      const seenContenderIds = new Set<string>();
+      for (const [cIndex, cId] of matchup.contenderIds.entries()) {
+        if (!contenderIds.has(cId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['matchups', index, 'contenderIds', cIndex],
+            message: `Matchup contenderId "${cId}" must reference a configured contender.`,
+          });
+        }
+        if (seenContenderIds.has(cId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['matchups', index, 'contenderIds', cIndex],
+            message: 'Matchup contenderIds must be unique within a matchup.',
+          });
+        }
+        seenContenderIds.add(cId);
+      }
+    }
+
+    const matchupSizes = new Set(batch.matchups.map((matchup) => matchup.contenderIds.length));
+    if (matchupSizes.size > 1) {
+      context.addIssue({
+        code: 'custom',
+        path: ['matchups'],
+        message: 'All matchups must declare the same number of contenders.',
+      });
+    }
+
+    const matchupSize = batch.matchups[0]?.contenderIds.length ?? 0;
+    for (const [index, permutation] of batch.spawnPermutations.entries()) {
+      if (matchupSize > 0 && permutation.length !== matchupSize) {
+        context.addIssue({
+          code: 'custom',
+          path: ['spawnPermutations', index],
+          message: `Spawn permutation must contain exactly ${matchupSize} entries to match matchup size.`,
+        });
+        continue;
+      }
+
+      const seenSlots = new Set<number>();
+      for (const [pIndex, slot] of permutation.entries()) {
+        if (slot >= permutation.length) {
+          context.addIssue({
+            code: 'custom',
+            path: ['spawnPermutations', index, pIndex],
+            message: `Spawn permutation entry ${slot} is out of range for matchup size ${permutation.length}.`,
+          });
+        }
+        if (seenSlots.has(slot)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['spawnPermutations', index, pIndex],
+            message: 'Spawn permutation entries must be unique.',
+          });
+        }
+        seenSlots.add(slot);
+      }
+    }
+
+    const seeds = new Set<number>();
+    for (const [index, seed] of batch.seeds.entries()) {
+      if (seeds.has(seed)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['seeds', index],
+          message: 'Seed values must be unique.',
+        });
+      }
+      seeds.add(seed);
+    }
+  });
+
+export type BatchConfig = z.infer<typeof BatchConfigSchema>;
+export const validateBatchConfig = (value: unknown): BatchConfig =>
+  validateWithSchema('batchConfig', BatchConfigSchema, value);
+
 export const AdapterErrorSchema = z
   .object({
     schemaVersion: z.literal(SCHEMA_VERSION),
