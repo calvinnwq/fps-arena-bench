@@ -58,7 +58,7 @@ The side panel shows match id, map id/version, status, winner, duration, reliabi
 The viewer rejects unsafe or malformed input with a categorized, redacted error message and never logs raw paths or environment details to the user-facing UI:
 
 - `invalid-json` — empty, non-JSON, or oversized input (>32 MiB cap).
-- `invalid-schema` — fails `validateReplaySafeArtifact` from `@fps-arena-bench/replay`.
+- `invalid-schema` — fails `validateReplaySafeArtifact` from `@fps-arena-bench/schemas`.
 - `invalid-timeline` — passes schema validation but the engine reconstruction disagrees with the recorded `result.ticksElapsed` or final state.
 - `read-error` — the browser File API failed to read the selected file.
 

@@ -10,7 +10,7 @@ import {
   type PlayerState,
   type TickEvent,
 } from '@fps-arena-bench/core';
-import { buildResultSummary, parseReplaySafeArtifact } from '@fps-arena-bench/replay';
+import { buildResultSummary, parseReplaySafeArtifact, type FinalStateSnapshot } from '@fps-arena-bench/replay';
 import type {
   MapDefinition,
   MatchConfig,
@@ -204,11 +204,21 @@ const sha256Hex = (input: string): string => {
 const hashMatchStateForViewer = (state: MatchState): string =>
   `sha256:${sha256Hex(canonicalizeMatchState(state))}`;
 
+const finalStateSnapshot = (state: MatchState): FinalStateSnapshot => ({
+  tick: state.tick,
+  winner: state.winner,
+  score: { ...state.score },
+  stats: Object.fromEntries(Object.entries(state.stats).map(([id, entry]) => [id, { ...entry }])) as FinalStateSnapshot['stats'],
+  aliveByContenderId: Object.fromEntries(
+    state.players.map((player) => [player.contenderId, player.alive]),
+  ),
+});
+
 const expectedResultFromState = (artifact: ReplaySafeArtifact, state: MatchState): ResultSummary => ({
   ...buildResultSummary({
     matchId: artifact.matchId,
     config: artifact.config,
-    state,
+    state: finalStateSnapshot(state),
     latenciesMs: [],
     reliability: artifact.result.reliability,
     timeoutBudgetMs: artifact.result.latency.timeoutBudgetMs,

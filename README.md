@@ -81,8 +81,8 @@ pnpm test
 pnpm build
 ```
 
-This branch includes the deterministic core engine, baseline bots, safe replay writer/reader, and
-bot-only CLI runner. A local bot duel can be generated with:
+This branch includes the deterministic core engine, baseline bots, local adapters, safe replay writer/reader, and
+CLI runner. A local bot duel can be generated with:
 
 ```bash
 pnpm build

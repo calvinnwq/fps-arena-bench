@@ -236,6 +236,7 @@ describe('buildReplayTimeline', () => {
       tick: artifact.result.ticksElapsed,
       contenderId: 'alpha',
       action: noop(),
+      latencyMs: 0,
     });
     const parsed = parseReplaySafeArtifact(tampered);
     expect(() => buildReplayTimeline(parsed)).toThrow(ReplayTimelineError);

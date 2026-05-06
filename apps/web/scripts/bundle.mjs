@@ -11,6 +11,7 @@ import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here, '..');
+const workspaceRoot = resolve(appRoot, '..', '..');
 
 export function buildOptions(overrides = {}) {
   const base = {
@@ -33,6 +34,9 @@ export function buildOptions(overrides = {}) {
     // obvious instead of failing silently at module load.
     alias: {
       'node:crypto': resolve(here, 'node-crypto-shim.mjs'),
+      '@fps-arena-bench/core': resolve(workspaceRoot, 'packages/core/src/index.ts'),
+      '@fps-arena-bench/replay': resolve(workspaceRoot, 'packages/replay/src/index.ts'),
+      '@fps-arena-bench/schemas': resolve(workspaceRoot, 'packages/schemas/src/index.ts'),
     },
   };
   return { ...base, ...overrides };
