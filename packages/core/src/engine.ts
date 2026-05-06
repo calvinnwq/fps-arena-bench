@@ -67,6 +67,10 @@ export interface TickResult {
   readonly events: readonly TickEvent[];
 }
 
+export interface TickEventsResult {
+  readonly events: readonly TickEvent[];
+}
+
 const NORMALIZED_HEADING = (heading: number): number => ((heading % 360) + 360) % 360;
 
 const sortByContenderId = <T extends { contenderId: string }>(values: readonly T[]): T[] =>
@@ -467,12 +471,14 @@ const evaluateEndCondition = (state: MatchState, events: TickEvent[]): void => {
   }
 };
 
-export function applyTick(state: MatchState, inputs: readonly AcceptedActionInput[]): TickResult {
+const applyTickEffects = (
+  state: MatchState,
+  inputs: readonly AcceptedActionInput[],
+): TickEventsResult => {
   if (state.status === 'finished') {
     throw new Error('Cannot apply tick to a finished match.');
   }
 
-  const preTickHash = hashMatchState(state);
   const events: TickEvent[] = [];
 
   const actionLookup = new Map<string, Action>();
@@ -498,6 +504,22 @@ export function applyTick(state: MatchState, inputs: readonly AcceptedActionInpu
   respawnPickups(state, events);
   evaluateEndCondition(state, events);
 
+  return { events };
+};
+
+export function applyTick(state: MatchState, inputs: readonly AcceptedActionInput[]): TickResult {
+  if (state.status === 'finished') {
+    throw new Error('Cannot apply tick to a finished match.');
+  }
+  const preTickHash = hashMatchState(state);
+  const { events } = applyTickEffects(state, inputs);
   const postTickHash = hashMatchState(state);
   return { preTickHash, postTickHash, events };
+}
+
+export function applyTickWithoutHashes(
+  state: MatchState,
+  inputs: readonly AcceptedActionInput[],
+): TickEventsResult {
+  return applyTickEffects(state, inputs);
 }

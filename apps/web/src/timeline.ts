@@ -1,5 +1,5 @@
 import {
-  applyTick,
+  applyTickWithoutHashes,
   createMatchState,
   type AcceptedActionInput,
   type EndReason,
@@ -122,7 +122,7 @@ export function buildReplayTimeline(input: ReplaySafeArtifact | string): ReplayT
       );
     }
     const inputs = grouped.get(tick) ?? [];
-    const result = applyTick(state, inputs);
+    const result = applyTickWithoutHashes(state, inputs);
     frames.push(snapshotFrame(state, result.events));
   }
 
