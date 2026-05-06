@@ -42,7 +42,7 @@ Harness subprocesses must run from a per-request temporary directory, not from t
 
 Environment variables must be allowlisted per adapter. The default allowlist should be empty except for variables that are required for the target CLI to execute in the local environment. Adapters must not copy the parent environment wholesale and must not record raw environment values in replay artifacts.
 
-The MVP must not pass repo or workspace context to harnesses, and must not add permissive coding-agent flags that grant file editing, shell execution, network access, or workspace traversal unless a future issue explicitly scopes and accepts that behavior.
+The MVP must not pass repo or workspace context to harnesses. Permissive coding-agent flags that grant file editing, shell execution, network access, or workspace traversal are allowed only when the adapter still runs in a per-request temporary directory with an explicit environment allowlist, as with Codex CLI `--full-auto`, or when a future issue explicitly scopes and accepts that behavior.
 
 ## Error Taxonomy
 
