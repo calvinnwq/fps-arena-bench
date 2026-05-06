@@ -205,11 +205,24 @@ export class OllamaAdapter implements ActionProvider {
     if (externalSignal !== undefined) {
       externalSignal.addEventListener('abort', onExternalAbort, { once: true });
     }
-    const timeoutHandle = setTimeout(() => {
-      timeoutController.abort('timeout');
-    }, this.requestTimeoutMs);
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_resolve, reject) => {
+      timeoutHandle = setTimeout(() => {
+        timeoutController.abort('timeout');
+        reject(
+          new OllamaAdapterError(
+            buildError(
+              adapterId,
+              'timeout',
+              `Adapter request exceeded timeout of ${this.requestTimeoutMs}ms.`,
+              true,
+            ),
+          ),
+        );
+      }, this.requestTimeoutMs);
+    });
 
-    try {
+    const runRequest = async (): Promise<Action> => {
       const response = await this.fetchImpl(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -290,6 +303,10 @@ export class OllamaAdapter implements ActionProvider {
       }
 
       return parseResult.action;
+    };
+
+    try {
+      return await Promise.race([runRequest(), timeoutPromise]);
     } catch (caught) {
       if (externalSignal?.aborted === true) {
         throw new OllamaAdapterError(
@@ -316,7 +333,7 @@ export class OllamaAdapter implements ActionProvider {
         ),
       );
     } finally {
-      clearTimeout(timeoutHandle);
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
       if (externalSignal !== undefined) {
         externalSignal.removeEventListener('abort', onExternalAbort);
       }

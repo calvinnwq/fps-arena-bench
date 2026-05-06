@@ -228,4 +228,16 @@ describe('buildReplayTimeline', () => {
     const parsed = parseReplaySafeArtifact(tampered);
     expect(() => buildReplayTimeline(parsed)).toThrow(ReplayTimelineError);
   });
+
+  it('throws ReplayTimelineError when accepted actions target the final result tick', () => {
+    const { artifact } = buildArtifact();
+    const tampered = JSON.parse(JSON.stringify(artifact));
+    tampered.acceptedActions.push({
+      tick: artifact.result.ticksElapsed,
+      contenderId: 'alpha',
+      action: noop(),
+    });
+    const parsed = parseReplaySafeArtifact(tampered);
+    expect(() => buildReplayTimeline(parsed)).toThrow(ReplayTimelineError);
+  });
 });

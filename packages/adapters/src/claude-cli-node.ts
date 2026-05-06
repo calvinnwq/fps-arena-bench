@@ -22,16 +22,30 @@ const decode = (chunk: Buffer | string): string =>
 const byteLength = (input: Buffer | string): number =>
   typeof input === 'string' ? Buffer.byteLength(input, 'utf8') : input.length;
 
+const signalChild = (child: ChildProcess, signal: NodeJS.Signals): void => {
+  if (process.platform !== 'win32' && child.pid !== undefined) {
+    let signaledGroup = false;
+    try {
+      process.kill(-child.pid, signal);
+      signaledGroup = true;
+    } catch {
+      signaledGroup = false;
+    }
+    if (signaledGroup) return;
+  }
+  child.kill(signal);
+};
+
 const killTree = (child: ChildProcess, graceMs: number): void => {
   if (child.killed || child.exitCode !== null || child.signalCode !== null) return;
   try {
-    child.kill('SIGTERM');
+    signalChild(child, 'SIGTERM');
   } catch {
     // Process may already be gone; SIGKILL fallback below still runs.
   }
   if (graceMs <= 0) {
     try {
-      child.kill('SIGKILL');
+      signalChild(child, 'SIGKILL');
     } catch {
       // Process may already be gone.
     }
@@ -40,7 +54,7 @@ const killTree = (child: ChildProcess, graceMs: number): void => {
   const sigkillTimer = setTimeout(() => {
     if (child.exitCode === null && child.signalCode === null) {
       try {
-        child.kill('SIGKILL');
+        signalChild(child, 'SIGKILL');
       } catch {
         // Process may already be gone.
       }
@@ -70,6 +84,7 @@ export const createNodeSpawnLike = (factoryOptions: NodeSpawnLikeOptions = {}): 
           env: { ...options.env },
           stdio: ['pipe', 'pipe', 'pipe'],
           windowsHide: true,
+          detached: process.platform !== 'win32',
         });
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : String(caught);

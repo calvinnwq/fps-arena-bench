@@ -196,6 +196,28 @@ describe('OllamaAdapter', () => {
     }
   });
 
+  it('classifies timeout when fetch ignores abort', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl: FetchLike = () => new Promise(() => {});
+      const adapter = new OllamaAdapter({
+        model: 'llama3',
+        fetchImpl,
+        requestTimeoutMs: 50,
+      });
+      const promise = adapter.decide(buildRequest());
+      const observed = promise.catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(60);
+      const error = await observed;
+      expect(error).toBeInstanceOf(OllamaAdapterError);
+      if (!(error instanceof OllamaAdapterError)) throw error;
+      expect(error.adapterError.code).toBe('timeout');
+      expect(error.adapterError.retryable).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('classifies non-AbortError fetch rejection as process-error', async () => {
     const fetchImpl: FetchLike = () => Promise.reject(new Error('connection refused'));
     const adapter = new OllamaAdapter({ model: 'llama3', fetchImpl });
