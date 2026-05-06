@@ -67,6 +67,39 @@ export function mountReplayViewerApp(
     : null;
 
   let disposed = false;
+  let rafId: number | null = null;
+  let lastTimestamp: number | null = null;
+
+  const _g = globalThis as {
+    requestAnimationFrame?: (cb: (timestamp: number) => void) => number;
+    cancelAnimationFrame?: (id: number) => void;
+  };
+  const raf = _g.requestAnimationFrame?.bind(globalThis) ?? null;
+  const caf = _g.cancelAnimationFrame?.bind(globalThis) ?? null;
+
+  const tickLoop = (timestamp: number): void => {
+    if (disposed) { rafId = null; return; }
+    const delta = lastTimestamp !== null ? timestamp - lastTimestamp : 0;
+    lastTimestamp = timestamp;
+    viewer.advance(delta);
+    // Only reschedule if the listener didn't null rafId (e.g. replay reached end and auto-paused)
+    if (rafId !== null) {
+      rafId = raf!(tickLoop);
+    }
+  };
+
+  const unsubscribeViewer = viewer.subscribe((snap) => {
+    if (disposed || raf === null) return;
+    const playing = snap.status === 'ready' && snap.isPlaying;
+    if (playing && rafId === null) {
+      lastTimestamp = null;
+      rafId = raf(tickLoop);
+    } else if (!playing && rafId !== null) {
+      caf!(rafId);
+      rafId = null;
+      lastTimestamp = null;
+    }
+  });
 
   return {
     viewer,
@@ -83,6 +116,11 @@ export function mountReplayViewerApp(
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      unsubscribeViewer();
+      if (rafId !== null && caf !== null) {
+        caf(rafId);
+        rafId = null;
+      }
       fileInputBinding?.dispose();
       summaryBinding.dispose();
       controlsBinding.dispose();

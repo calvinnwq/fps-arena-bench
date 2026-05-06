@@ -1,6 +1,6 @@
 // Browser bundle script for the FPS Arena Bench replay viewer.
 //
-// Reads the TypeScript-compiled entry from dist/entry.js and emits a single
+// Takes the TypeScript entry directly (src/entry.ts) and emits a single
 // browser-ready ESM bundle (dist/entry.bundle.js) that resolves the
 // @fps-arena-bench/* workspace imports and tree-shakes Node-only code paths
 // (e.g. hashMatchState's node:crypto import) out of the viewer.
@@ -14,7 +14,7 @@ const appRoot = resolve(here, '..');
 
 export function buildOptions(overrides = {}) {
   const base = {
-    entryPoints: [resolve(appRoot, 'dist/entry.js')],
+    entryPoints: [resolve(appRoot, 'src/entry.ts')],
     outfile: resolve(appRoot, 'dist/entry.bundle.js'),
     bundle: true,
     format: 'esm',
