@@ -135,7 +135,9 @@ describe('CodexCliAdapter', () => {
     const opts: SpawnLikeOptions = spawnImpl.mock.calls[0]![0];
     expect(opts.command).toBe('/usr/local/bin/codex');
     expect(opts.args.slice(0, -1)).toEqual(['exec', '--full-auto', '--quiet', '--model', 'gpt-4']);
-    expect(opts.args.at(-1)).toContain(`Prompt template version: ${ACTION_PROMPT_TEMPLATE_VERSION}`);
+    expect(opts.args.at(-1)).toContain(
+      `Prompt template version: ${ACTION_PROMPT_TEMPLATE_VERSION}`,
+    );
   });
 
   it('parses a JSON action from stdout on a clean zero-exit run', async () => {

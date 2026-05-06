@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@fps-arena-bench/schemas';
 
-import {
-  CodexCliAdapter,
-  type SpawnLike,
-  type CodexCliFileSystem,
-} from './codex-cli.js';
+import { CodexCliAdapter, type SpawnLike, type CodexCliFileSystem } from './codex-cli.js';
 import {
   createCodexCliProviderFactory,
   type CreateCodexCliProviderFactoryOptions,

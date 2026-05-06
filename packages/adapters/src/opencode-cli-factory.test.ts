@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@fps-arena-bench/schemas';
 
-import {
-  OpenCodeCliAdapter,
-  type SpawnLike,
-  type OpenCodeCliFileSystem,
-} from './opencode-cli.js';
+import { OpenCodeCliAdapter, type SpawnLike, type OpenCodeCliFileSystem } from './opencode-cli.js';
 import {
   createOpenCodeCliProviderFactory,
   type CreateOpenCodeCliProviderFactoryOptions,

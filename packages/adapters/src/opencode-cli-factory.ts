@@ -73,8 +73,10 @@ export const createOpenCodeCliProviderFactory = (
   return (request) => new OpenCodeCliAdapter(buildAdapterOptions(options, request));
 };
 
-export interface CreateNodeOpenCodeCliProviderFactoryOptions
-  extends Omit<CreateOpenCodeCliProviderFactoryOptions, 'spawnImpl' | 'fs'> {
+export interface CreateNodeOpenCodeCliProviderFactoryOptions extends Omit<
+  CreateOpenCodeCliProviderFactoryOptions,
+  'spawnImpl' | 'fs'
+> {
   readonly spawnLikeOptions?: NodeSpawnLikeOptions;
   readonly fileSystemOptions?: NodeClaudeCliFileSystemOptions;
 }

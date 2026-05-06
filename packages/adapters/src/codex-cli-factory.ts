@@ -21,9 +21,7 @@ export interface CodexCliProviderFactoryRequest {
   readonly seed: number;
 }
 
-export type CodexCliProviderFactory = (
-  request: CodexCliProviderFactoryRequest,
-) => CodexCliAdapter;
+export type CodexCliProviderFactory = (request: CodexCliProviderFactoryRequest) => CodexCliAdapter;
 
 export interface CreateCodexCliProviderFactoryOptions {
   readonly spawnImpl: SpawnLike;

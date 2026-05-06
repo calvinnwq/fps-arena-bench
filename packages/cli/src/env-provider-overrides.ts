@@ -64,9 +64,7 @@ export const buildEnvProviderOverrides = (
   if (isEnabled(env.FPS_ARENA_ENABLE_CODEX_CLI)) {
     const timeout = parsePositiveInteger(env.FPS_ARENA_CODEX_TIMEOUT_MS);
     overrides['codex-cli'] = createNodeCodexCliProviderFactory({
-      ...(isNonEmpty(env.FPS_ARENA_CODEX_COMMAND)
-        ? { command: env.FPS_ARENA_CODEX_COMMAND }
-        : {}),
+      ...(isNonEmpty(env.FPS_ARENA_CODEX_COMMAND) ? { command: env.FPS_ARENA_CODEX_COMMAND } : {}),
       ...(timeout !== undefined ? { requestTimeoutMs: timeout } : {}),
     });
   }
