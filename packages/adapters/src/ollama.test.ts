@@ -253,7 +253,9 @@ describe('OllamaAdapter', () => {
       respondWith('Internal Server Error', { ok: false, status: 503 });
     const fallback: Action = { schemaVersion: SCHEMA_VERSION, type: 'noop' };
     const adapter = new OllamaAdapter({ model: 'llama3', fetchImpl, fallbackAction: fallback });
-    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({ fallbackAction: fallback });
+    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({
+      fallbackAction: fallback,
+    });
   });
 
   it('classifies invalid envelope JSON as process-error', async () => {
@@ -309,7 +311,9 @@ describe('OllamaAdapter', () => {
       direction: { x: 1, y: 0 },
     };
     const adapter = new OllamaAdapter({ model: 'llama3', fetchImpl, fallbackAction: fallback });
-    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({ fallbackAction: fallback });
+    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({
+      fallbackAction: fallback,
+    });
   });
 
   it('forwards temperature into the request body when provided', async () => {

@@ -80,12 +80,7 @@ const readCappedResponseText = async (
       if (bytes > maxBytes) {
         await reader.cancel();
         throw new OllamaAdapterError(
-          buildError(
-            adapterId,
-            'output-cap',
-            'Ollama response body exceeded byte cap.',
-            false,
-          ),
+          buildError(adapterId, 'output-cap', 'Ollama response body exceeded byte cap.', false),
         );
       }
       chunks.push(result.value);

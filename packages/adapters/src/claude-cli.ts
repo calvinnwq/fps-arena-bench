@@ -347,5 +347,4 @@ export class ClaudeCliAdapter implements ActionProvider {
     }
     return env;
   }
-
 }

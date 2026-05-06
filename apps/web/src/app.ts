@@ -78,7 +78,10 @@ export function mountReplayViewerApp(
   const caf = _g.cancelAnimationFrame?.bind(globalThis) ?? null;
 
   const tickLoop = (timestamp: number): void => {
-    if (disposed) { rafId = null; return; }
+    if (disposed) {
+      rafId = null;
+      return;
+    }
     const delta = lastTimestamp !== null ? timestamp - lastTimestamp : 0;
     lastTimestamp = timestamp;
     viewer.advance(delta);

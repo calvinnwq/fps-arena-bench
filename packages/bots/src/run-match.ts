@@ -189,7 +189,8 @@ export async function runBotMatch(options: BotMatchOptions): Promise<BotMatchRes
         if (error instanceof ProviderDecisionError) {
           latencyMsByContenderId.set(player.contenderId, error.latencyMs);
           candidate =
-            getFallbackAction(error.originalError) ?? onError(player.contenderId, error.originalError);
+            getFallbackAction(error.originalError) ??
+            onError(player.contenderId, error.originalError);
         } else {
           latencyMsByContenderId.set(player.contenderId, 0);
           candidate = getFallbackAction(error) ?? onError(player.contenderId, error);

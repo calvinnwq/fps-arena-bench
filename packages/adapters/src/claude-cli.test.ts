@@ -401,7 +401,9 @@ describe('ClaudeCliAdapter', () => {
     const { fs } = makeFakeFs();
     const fallback: Action = { schemaVersion: SCHEMA_VERSION, type: 'noop' };
     const adapter = new ClaudeCliAdapter({ spawnImpl, fs, fallbackAction: fallback });
-    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({ fallbackAction: fallback });
+    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({
+      fallbackAction: fallback,
+    });
   });
 
   it('surfaces fallbackAction when subprocess exits non-zero and a fallback is configured', async () => {
@@ -413,7 +415,9 @@ describe('ClaudeCliAdapter', () => {
       direction: { x: 1, y: 0 },
     };
     const adapter = new ClaudeCliAdapter({ spawnImpl, fs, fallbackAction: fallback });
-    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({ fallbackAction: fallback });
+    await expect(adapter.decide(buildRequest())).rejects.toMatchObject({
+      fallbackAction: fallback,
+    });
   });
 
   it('exposes default request timeout matching the documented default', () => {
