@@ -102,6 +102,10 @@ describe('runCli', () => {
       expect(summary).toMatch(/providerErrors: 0/);
       const written = readdirSync(outDir).sort();
       expect(written).toEqual(['replay.safe.json', 'result.json']);
+      const replayJson = readFileSync(join(outDir, 'replay.safe.json'), 'utf8');
+      validateReplaySafeArtifact(JSON.parse(replayJson) as unknown);
+      expect(replayJson).not.toMatch(/raw[_-]?prompt/i);
+      expect(replayJson).not.toMatch(/raw[_-]?output/i);
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }

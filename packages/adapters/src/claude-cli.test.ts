@@ -253,7 +253,7 @@ describe('ClaudeCliAdapter', () => {
         }
         options.signal.addEventListener('abort', onAbort);
       });
-    const { fs } = makeFakeFs();
+    const { fs, record } = makeFakeFs();
     const adapter = new ClaudeCliAdapter({ spawnImpl, fs });
     const promise = adapter.decide(buildRequest(controller.signal));
     const observed = promise.catch((error: unknown) => error);
@@ -263,6 +263,7 @@ describe('ClaudeCliAdapter', () => {
     if (!(error instanceof ClaudeCliAdapterError)) throw error;
     expect(error.adapterError.code).toBe('aborted');
     expect(error.adapterError.retryable).toBe(false);
+    expect(record.rmCalls).toHaveLength(1);
   });
 
   it('classifies an internal timeout as timeout (not aborted)', async () => {
@@ -274,7 +275,7 @@ describe('ClaudeCliAdapter', () => {
             resolve({ kind: 'aborted', stdout: '', stderr: '' });
           });
         });
-      const { fs } = makeFakeFs();
+      const { fs, record } = makeFakeFs();
       const adapter = new ClaudeCliAdapter({ spawnImpl, fs, requestTimeoutMs: 50 });
       const promise = adapter.decide(buildRequest());
       const observed = promise.catch((error: unknown) => error);
@@ -284,6 +285,7 @@ describe('ClaudeCliAdapter', () => {
       if (!(error instanceof ClaudeCliAdapterError)) throw error;
       expect(error.adapterError.code).toBe('timeout');
       expect(error.adapterError.retryable).toBe(true);
+      expect(record.rmCalls).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }
@@ -331,11 +333,12 @@ describe('ClaudeCliAdapter', () => {
       kind: 'spawn-error',
       message: 'ENOENT: spawn /usr/bin/claude',
     });
-    const { fs } = makeFakeFs();
+    const { fs, record } = makeFakeFs();
     const adapter = new ClaudeCliAdapter({ spawnImpl, fs });
     await expect(adapter.decide(buildRequest())).rejects.toMatchObject({
       adapterError: { code: 'process-error', retryable: true },
     });
+    expect(record.rmCalls).toHaveLength(1);
   });
 
   it('redacts /Users paths from process-error messages', async () => {
@@ -351,6 +354,26 @@ describe('ClaudeCliAdapter', () => {
     } catch (error) {
       if (!(error instanceof ClaudeCliAdapterError)) throw error;
       expect(error.adapterError.message).not.toContain('/Users/somebody');
+    }
+  });
+
+  it('redacts /home, /private, and /root paths from process-error messages', async () => {
+    const cases: Array<{ message: string; sensitive: string }> = [
+      { message: 'spawn failed: /home/alice/.local/bin/claude: ENOENT', sensitive: '/home/alice' },
+      { message: 'mkdtemp failed: /private/tmp/fps-arena-xyz', sensitive: '/private/tmp' },
+      { message: 'spawn failed: /root/.config/claude/settings', sensitive: '/root/.config' },
+    ];
+    for (const { message, sensitive } of cases) {
+      const spawnImpl: SpawnLike = async () => ({ kind: 'spawn-error', message });
+      const { fs } = makeFakeFs();
+      const adapter = new ClaudeCliAdapter({ spawnImpl, fs });
+      try {
+        await adapter.decide(buildRequest());
+        throw new Error('expected throw');
+      } catch (error) {
+        if (!(error instanceof ClaudeCliAdapterError)) throw error;
+        expect(error.adapterError.message).not.toContain(sensitive);
+      }
     }
   });
 
