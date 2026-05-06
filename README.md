@@ -96,7 +96,7 @@ node packages/cli/dist/index.js run \
 
 The generated `replay.safe.json` can be opened in the local top-down web replay viewer at `apps/web`. After `pnpm build`, open `apps/web/index.html` in a modern browser (or serve `apps/web` over a simple local HTTP server) and use the file picker to load the artifact. See [docs/web-viewer.md](docs/web-viewer.md) for the full flow, controls, error handling, and privacy guarantees.
 
-The zero-credential adapter path is `configs/examples/mock-duel.json`, which runs the deterministic mock adapter through the same prompt -> JSON -> action-schema parse loop used by local model adapters. Ollama and Claude CLI examples live in `configs/examples/ollama-vs-baseline.json` and `configs/examples/claude-cli-vs-baseline.json`; both use strict match configs plus provider factory injection for local runtime details. See [docs/adapters.md](docs/adapters.md) for the Ollama factory path, the Claude CLI harness lifecycle, and the optional local smoke pattern for an already-authenticated `claude` CLI.
+The zero-credential adapter path is `configs/examples/mock-duel.json`, which runs the deterministic mock adapter through the same prompt -> JSON -> action-schema parse loop used by local model adapters. Ollama and Claude CLI examples live in `configs/examples/ollama-vs-baseline.json` and `configs/examples/claude-cli-vs-baseline.json`; both use strict match configs plus provider factory injection or CLI environment variables for local runtime details. See [docs/adapters.md](docs/adapters.md) for the Ollama factory/env path, the Claude CLI harness lifecycle, and the optional local smoke pattern for an already-authenticated `claude` CLI.
 
 ## Non-goals for v0.1
 
