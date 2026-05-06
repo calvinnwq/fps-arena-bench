@@ -1,3 +1,4 @@
+import { redactString } from '@fps-arena-bench/replay';
 import {
   ActionSchema,
   AdapterErrorSchema,
@@ -17,12 +18,6 @@ export type ParseActionResult =
   | { readonly ok: true; readonly action: Action }
   | { readonly ok: false; readonly error: AdapterError };
 
-const PATH_LIKE_PATTERN =
-  /(?:^|(?<=[\s"'`,(:=]))\/(?:Users|home|root|var|etc|opt|tmp|private|Library|System|mnt|usr\/local|srv|run)\/[^\s"'`,]*/g;
-
-const sanitizeMessage = (message: string): string =>
-  message.replace(PATH_LIKE_PATTERN, '[REDACTED]');
-
 const utf8ByteLength = (input: string): number => {
   // Avoid Buffer/Node-only APIs to keep this isomorphic.
   return new TextEncoder().encode(input).length;
@@ -38,7 +33,7 @@ const buildError = (
     schemaVersion: SCHEMA_VERSION,
     adapterId,
     code,
-    message: sanitizeMessage(message),
+    message: redactString(message),
     retryable,
   });
 

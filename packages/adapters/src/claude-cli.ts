@@ -1,5 +1,6 @@
 import type { ActionProvider, ActionRequest } from '@fps-arena-bench/contracts';
 import { renderActionPrompt } from '@fps-arena-bench/contracts';
+import { redactString } from '@fps-arena-bench/replay';
 import {
   SCHEMA_VERSION,
   type Action,
@@ -78,12 +79,6 @@ export class ClaudeCliAdapterError extends Error {
   }
 }
 
-const PATH_LIKE_PATTERN =
-  /(?:^|(?<=[\s"'`,(:=]))\/(?:Users|home|root|var|etc|opt|tmp|private|Library|System|mnt|usr\/local|srv|run)\/[^\s"'`,]*/g;
-
-const sanitizeMessage = (message: string): string =>
-  message.replace(PATH_LIKE_PATTERN, '[REDACTED]');
-
 const buildError = (
   adapterId: string,
   code: AdapterError['code'],
@@ -93,7 +88,7 @@ const buildError = (
   schemaVersion: SCHEMA_VERSION,
   adapterId,
   code,
-  message: sanitizeMessage(message),
+  message: redactString(message),
   retryable,
 });
 
