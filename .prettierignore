@@ -3,4 +3,5 @@ dist/
 coverage/
 replays/
 .gnhf/
+.claude/
 pnpm-lock.yaml

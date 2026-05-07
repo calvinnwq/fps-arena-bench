@@ -93,6 +93,16 @@ node packages/cli/dist/index.js run \
 
 `run` also accepts `-c`, `-m`, `-o`/`--out-dir`, `--snapshot-interval <ticks>` to include hash-only replay snapshots, and `--quiet`/`-q` to suppress the stdout summary. Use `help`, `--help`, or `-h` for usage. The output directory contains `replay.safe.json` and `result.json`; CLI exit codes are `0` for success/help, `1` for match execution failures, and `2` for argument errors.
 
+A multi-match batch can be generated with:
+
+```bash
+node packages/cli/dist/index.js batch \
+  --config configs/examples/bot-batch.json \
+  --out replays/batches
+```
+
+`batch` also accepts `-c`/`--config`, `-o`/`--out-dir`, `--snapshot-interval <ticks>`, `--overwrite` to replace an existing batch manifest, and `--quiet`/`-q`. It produces a `<outDir>/<batchId>/` tree containing per-match `matches/<matchId>/{config.json,replay.safe.json,result.json}` artifacts plus a top-level `manifest.json` recording the batch config snapshot, ordered runs, terminal status, and relative artifact paths. CLI exit codes are `0` when all runs complete or for help, `1` when any batch run fails or batch execution fails, and `2` for argument errors. See [docs/configs.md](docs/configs.md#batch-configs) for the batch config shape and [docs/benchmark-methodology.md](docs/benchmark-methodology.md) for fairness, ordering, and partial-failure semantics.
+
 The generated `replay.safe.json` can be opened in the local top-down web replay viewer at `apps/web`. After `pnpm build`, open `apps/web/index.html` in a modern browser (or serve `apps/web` over a simple local HTTP server) and use the file picker to load the artifact. See [docs/web-viewer.md](docs/web-viewer.md) for the full flow, controls, error handling, and privacy guarantees.
 
 The zero-credential adapter path is `configs/examples/mock-duel.json`, which runs the deterministic mock adapter through the same prompt -> JSON -> action-schema parse loop used by local model adapters. Ollama, Claude CLI, Codex CLI, and OpenCode CLI examples live in `configs/examples/`; all use strict match configs plus provider factory injection or CLI environment variables for local runtime details. See [docs/adapters.md](docs/adapters.md) for the Ollama factory/env path, the Claude/Codex/OpenCode CLI harness lifecycles, and the optional local smoke patterns for an already-authenticated `claude`, `codex`, or `opencode` CLI.

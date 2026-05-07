@@ -187,6 +187,50 @@ describe('runCli', () => {
     }
   });
 
+  it('runs the batch subcommand against the example bot batch config', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'fps-cli-batch-'));
+    const exampleBatchPath = join(repoRoot, 'configs/examples/bot-batch.json');
+    const { io, stdoutChunks } = captureStreams();
+    try {
+      const code = await runCli(
+        ['batch', '--config', exampleBatchPath, '--out', outDir, '--quiet'],
+        io,
+      );
+      expect(code).toBe(0);
+      expect(stdoutChunks.join('')).toBe('');
+      const manifestPath = join(outDir, 'bot-batch', 'manifest.json');
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+        runs: Array<{ status: string; replayPath?: string }>;
+      };
+      expect(manifest.runs.length).toBeGreaterThan(0);
+      for (const run of manifest.runs) {
+        expect(run.status).toBe('completed');
+        expect(run.replayPath).toBeDefined();
+        const replayPath = join(outDir, 'bot-batch', run.replayPath!);
+        validateReplaySafeArtifact(JSON.parse(readFileSync(replayPath, 'utf8')) as unknown);
+      }
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('emits per-match progress and a batch summary on stdout when not quiet', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'fps-cli-batch-progress-'));
+    const exampleBatchPath = join(repoRoot, 'configs/examples/bot-batch.json');
+    const { io, stdoutChunks } = captureStreams();
+    try {
+      const code = await runCli(['batch', '--config', exampleBatchPath, '--out', outDir], io);
+      expect(code).toBe(0);
+      const stdout = stdoutChunks.join('');
+      expect(stdout).toMatch(/batch: bot-batch/);
+      expect(stdout).toMatch(/totalRuns: \d+/);
+      expect(stdout).toMatch(/running bot-batch/);
+      expect(stdout).toMatch(/completed bot-batch/);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
   it('returns exit code 1 when the command throws', async () => {
     const outDir = mkdtempSync(join(tmpdir(), 'fps-cli-err-'));
     const { io, stderrChunks } = captureStreams();

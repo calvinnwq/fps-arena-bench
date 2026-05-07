@@ -2,14 +2,31 @@
 
 import { ArgsError, helpText, parseArgs } from './args.js';
 import { buildEnvProviderOverrides } from './env-provider-overrides.js';
+import { createBuiltinRegistry } from './registry.js';
+import {
+  runBatchCommand,
+  type BatchMatchEndEvent,
+  type BatchMatchStartEvent,
+  type RunBatchCommandSummary,
+} from './run-batch-command.js';
 import { runMatchCommand, type RunMatchCommandSummary } from './run-match-command.js';
 
 export const CLI_PACKAGE_VERSION = '0.0.0';
 
 export { runMatchCommand } from './run-match-command.js';
 export type { RunMatchCommandOptions, RunMatchCommandSummary } from './run-match-command.js';
+export { runBatchCommand } from './run-batch-command.js';
+export type {
+  RunBatchCommandOptions,
+  RunBatchCommandSummary,
+  BatchManifest,
+  BatchRunRecord,
+  BatchRunStatus,
+  BatchMatchStartEvent,
+  BatchMatchEndEvent,
+} from './run-batch-command.js';
 export { parseArgs, helpText, ArgsError } from './args.js';
-export type { ParsedCommand, ParsedRunArgs, ParsedHelpArgs } from './args.js';
+export type { ParsedCommand, ParsedRunArgs, ParsedBatchArgs, ParsedHelpArgs } from './args.js';
 export { buildEnvProviderOverrides } from './env-provider-overrides.js';
 export type { EnvProviderOverrides } from './env-provider-overrides.js';
 export { BUILTIN_ADAPTER_IDS, createBuiltinRegistry } from './registry.js';
@@ -40,6 +57,18 @@ const formatSummary = (summary: RunMatchCommandSummary): string => {
   ].join('\n');
 };
 
+const formatBatchSummary = (summary: RunBatchCommandSummary): string =>
+  [
+    `batch: ${summary.batchId}`,
+    `totalRuns: ${summary.totalRuns}`,
+    `completedRuns: ${summary.completedRuns}`,
+    `failedRuns: ${summary.failedRuns}`,
+    `skippedRuns: ${summary.skippedRuns}`,
+    `manifest: ${summary.manifestPath}`,
+    `outDir: ${summary.batchOutDir}`,
+    '',
+  ].join('\n');
+
 export async function runCli(
   argv: readonly string[],
   io: CliIo = { stdout: process.stdout, stderr: process.stderr },
@@ -59,6 +88,44 @@ export async function runCli(
   if (parsed.command === 'help') {
     io.stdout.write(helpText());
     return 0;
+  }
+
+  if (parsed.command === 'batch') {
+    try {
+      const overrides = buildEnvProviderOverrides(process.env);
+      const registry = createBuiltinRegistry(overrides);
+      const onMatchStart = parsed.quiet
+        ? undefined
+        : (event: BatchMatchStartEvent) => {
+            io.stdout.write(`[${event.index + 1}/${event.total}] running ${event.matchId}\n`);
+          };
+      const onMatchEnd = parsed.quiet
+        ? undefined
+        : (event: BatchMatchEndEvent) => {
+            io.stdout.write(
+              `[${event.index + 1}/${event.total}] ${event.status} ${event.matchId}\n`,
+            );
+          };
+      const summary = await runBatchCommand({
+        configPath: parsed.configPath,
+        outDir: parsed.outDir,
+        registry,
+        overwrite: parsed.overwrite,
+        ...(parsed.snapshotIntervalTicks !== undefined
+          ? { snapshotIntervalTicks: parsed.snapshotIntervalTicks }
+          : {}),
+        ...(onMatchStart ? { onMatchStart } : {}),
+        ...(onMatchEnd ? { onMatchEnd } : {}),
+      });
+      if (!parsed.quiet) {
+        io.stdout.write(formatBatchSummary(summary));
+      }
+      return summary.failedRuns > 0 ? 1 : 0;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      io.stderr.write(`fps-arena-bench: ${message}\n`);
+      return 1;
+    }
   }
 
   try {
