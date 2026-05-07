@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+
+import { aggregateBatch, type AggregateBatchResult } from './aggregate-batch.js';
 import { ArgsError, helpText, parseArgs } from './args.js';
 import { buildEnvProviderOverrides } from './env-provider-overrides.js';
 import { createBuiltinRegistry } from './registry.js';
@@ -13,6 +17,9 @@ import { runMatchCommand, type RunMatchCommandSummary } from './run-match-comman
 
 export const CLI_PACKAGE_VERSION = '0.0.0';
 
+const AGGREGATE_JSON_FILENAME = 'aggregate.json';
+const AGGREGATE_CSV_FILENAME = 'aggregate.csv';
+
 export { runMatchCommand } from './run-match-command.js';
 export type { RunMatchCommandOptions, RunMatchCommandSummary } from './run-match-command.js';
 export { runBatchCommand } from './run-batch-command.js';
@@ -25,8 +32,25 @@ export type {
   BatchMatchStartEvent,
   BatchMatchEndEvent,
 } from './run-batch-command.js';
+export { aggregateBatch } from './aggregate-batch.js';
+export type {
+  AggregateBatchOptions,
+  AggregateBatchResult,
+  AggregateSummary,
+  AdapterAggregate,
+  MatchupAggregate,
+  MatchupContenderOutcome,
+  AggregateFailureEntry,
+} from './aggregate-batch.js';
+export { AGGREGATE_SCHEMA_VERSION, CSV_HEADERS, csvEscape } from './aggregate-batch.js';
 export { parseArgs, helpText, ArgsError } from './args.js';
-export type { ParsedCommand, ParsedRunArgs, ParsedBatchArgs, ParsedHelpArgs } from './args.js';
+export type {
+  ParsedCommand,
+  ParsedRunArgs,
+  ParsedBatchArgs,
+  ParsedSummarizeArgs,
+  ParsedHelpArgs,
+} from './args.js';
 export { buildEnvProviderOverrides } from './env-provider-overrides.js';
 export type { EnvProviderOverrides } from './env-provider-overrides.js';
 export { BUILTIN_ADAPTER_IDS, createBuiltinRegistry } from './registry.js';
@@ -69,6 +93,25 @@ const formatBatchSummary = (summary: RunBatchCommandSummary): string =>
     '',
   ].join('\n');
 
+const formatAggregateSummary = (
+  result: AggregateBatchResult,
+  jsonPath: string,
+  csvPath: string,
+): string => {
+  const s = result.summary;
+  return [
+    `aggregate: ${s.batchId}`,
+    `resultsLoaded: ${s.runCounts.resultsLoaded}`,
+    `resultsMissing: ${s.runCounts.resultsMissing}`,
+    `adapters: ${Object.keys(s.byAdapter).join(', ')}`,
+    `matchups: ${Object.keys(s.byMatchup).join(', ')}`,
+    `failures: ${s.failures.length}`,
+    `json: ${jsonPath}`,
+    `csv: ${csvPath}`,
+    '',
+  ].join('\n');
+};
+
 export async function runCli(
   argv: readonly string[],
   io: CliIo = { stdout: process.stdout, stderr: process.stderr },
@@ -88,6 +131,36 @@ export async function runCli(
   if (parsed.command === 'help') {
     io.stdout.write(helpText());
     return 0;
+  }
+
+  if (parsed.command === 'summarize') {
+    try {
+      const manifestPath = resolve(parsed.manifestPath);
+      const outDir = parsed.outDir !== undefined ? resolve(parsed.outDir) : dirname(manifestPath);
+      const jsonPath = join(outDir, AGGREGATE_JSON_FILENAME);
+      const csvPath = join(outDir, AGGREGATE_CSV_FILENAME);
+
+      if ((existsSync(jsonPath) || existsSync(csvPath)) && !parsed.overwrite) {
+        throw new Error(
+          `Aggregate output already exists at ${outDir}. Re-run with --overwrite or remove the files.`,
+        );
+      }
+
+      const result = aggregateBatch({ manifestPath, strict: parsed.strict });
+
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(jsonPath, `${JSON.stringify(result.summary, null, 2)}\n`, 'utf8');
+      writeFileSync(csvPath, result.csv, 'utf8');
+
+      if (!parsed.quiet) {
+        io.stdout.write(formatAggregateSummary(result, jsonPath, csvPath));
+      }
+      return result.summary.runCounts.resultsMissing > 0 ? 1 : 0;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      io.stderr.write(`fps-arena-bench: ${message}\n`);
+      return 1;
+    }
   }
 
   if (parsed.command === 'batch') {

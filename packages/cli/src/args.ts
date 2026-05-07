@@ -16,11 +16,20 @@ export interface ParsedBatchArgs {
   readonly quiet: boolean;
 }
 
+export interface ParsedSummarizeArgs {
+  readonly command: 'summarize';
+  readonly manifestPath: string;
+  readonly outDir?: string;
+  readonly strict: boolean;
+  readonly overwrite: boolean;
+  readonly quiet: boolean;
+}
+
 export interface ParsedHelpArgs {
   readonly command: 'help';
 }
 
-export type ParsedCommand = ParsedRunArgs | ParsedBatchArgs | ParsedHelpArgs;
+export type ParsedCommand = ParsedRunArgs | ParsedBatchArgs | ParsedSummarizeArgs | ParsedHelpArgs;
 
 export class ArgsError extends Error {}
 
@@ -31,6 +40,8 @@ Usage:
                       [--snapshot-interval <ticks>] [--quiet]
   fps-arena-bench batch --config|-c <path> --out|--out-dir|-o <dir>
                         [--snapshot-interval <ticks>] [--overwrite] [--quiet]
+  fps-arena-bench summarize --manifest <path> [--out|--out-dir|-o <dir>]
+                            [--strict] [--overwrite] [--quiet]
   fps-arena-bench help|--help|-h
 
 Examples:
@@ -42,6 +53,9 @@ Examples:
   fps-arena-bench batch \\
     -c configs/examples/bot-batch.json \\
     -o replays/batches \\
+    -q
+  fps-arena-bench summarize \\
+    --manifest replays/batches/bot-batch/manifest.json \\
     -q
 `;
 
@@ -73,23 +87,35 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
   if (command === 'help' || command === '--help' || command === '-h') {
     return { command: 'help' };
   }
-  if (command !== 'run' && command !== 'batch') {
+  if (command !== 'run' && command !== 'batch' && command !== 'summarize') {
     throw new ArgsError(`Unknown command "${command}". Run "fps-arena-bench help" for usage.`);
   }
 
   let configPath: string | undefined;
+  let manifestPath: string | undefined;
   let mapPath: string | undefined;
   let outDir: string | undefined;
   let snapshotIntervalTicks: number | undefined;
   let quiet = false;
   let overwrite = false;
+  let strict = false;
 
   for (let index = 0; index < rest.length; index += 1) {
     const token = rest[index] ?? '';
     switch (token) {
       case '--config':
       case '-c':
+        if (command === 'summarize') {
+          throw new ArgsError(`Flag ${token} is not valid for the summarize command.`);
+        }
         configPath = requireValue(token, rest[index + 1]);
+        index += 1;
+        break;
+      case '--manifest':
+        if (command !== 'summarize') {
+          throw new ArgsError(`Flag ${token} is only valid for the summarize command.`);
+        }
+        manifestPath = requireValue(token, rest[index + 1]);
         index += 1;
         break;
       case '--map':
@@ -107,14 +133,23 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
         index += 1;
         break;
       case '--snapshot-interval':
+        if (command === 'summarize') {
+          throw new ArgsError(`Flag ${token} is not valid for the summarize command.`);
+        }
         snapshotIntervalTicks = parsePositiveInteger(token, requireValue(token, rest[index + 1]));
         index += 1;
         break;
       case '--overwrite':
-        if (command !== 'batch') {
-          throw new ArgsError(`Flag ${token} is only valid for the batch command.`);
+        if (command === 'run') {
+          throw new ArgsError(`Flag ${token} is not valid for the run command.`);
         }
         overwrite = true;
+        break;
+      case '--strict':
+        if (command !== 'summarize') {
+          throw new ArgsError(`Flag ${token} is only valid for the summarize command.`);
+        }
+        strict = true;
         break;
       case '--quiet':
       case '-q':
@@ -123,6 +158,20 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
       default:
         throw new ArgsError(`Unknown argument "${token}". Run "fps-arena-bench help" for usage.`);
     }
+  }
+
+  if (command === 'summarize') {
+    if (manifestPath === undefined) {
+      throw new ArgsError('Flag --manifest <path> is required.');
+    }
+    return {
+      command: 'summarize',
+      manifestPath,
+      ...(outDir !== undefined ? { outDir } : {}),
+      strict,
+      overwrite,
+      quiet,
+    };
   }
 
   if (configPath === undefined) {
