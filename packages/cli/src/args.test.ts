@@ -103,7 +103,7 @@ describe('parseArgs', () => {
   it('rejects --overwrite flag when used with run command', () => {
     expect(() =>
       parseArgs(['run', '-c', 'b.json', '-m', 'm.json', '-o', 'out', '--overwrite']),
-    ).toThrow(/--overwrite.*only valid for the batch command/);
+    ).toThrow(/--overwrite.*not valid for the run command/);
   });
 
   it('rejects non-positive snapshot interval', () => {
@@ -133,5 +133,54 @@ describe('parseArgs', () => {
         '-3',
       ]),
     ).toThrow(ArgsError);
+  });
+
+  it('parses summarize command with required --manifest flag', () => {
+    const result = parseArgs(['summarize', '--manifest', 'out/bot-batch/manifest.json']);
+    expect(result).toEqual({
+      command: 'summarize',
+      manifestPath: 'out/bot-batch/manifest.json',
+      outDir: undefined,
+      strict: false,
+      overwrite: false,
+      quiet: false,
+    });
+  });
+
+  it('parses summarize command with optional --out, --strict, --overwrite, and --quiet flags', () => {
+    const result = parseArgs([
+      'summarize',
+      '--manifest',
+      'out/bot-batch/manifest.json',
+      '--out',
+      'summaries',
+      '--strict',
+      '--overwrite',
+      '--quiet',
+    ]);
+    expect(result).toEqual({
+      command: 'summarize',
+      manifestPath: 'out/bot-batch/manifest.json',
+      outDir: 'summaries',
+      strict: true,
+      overwrite: true,
+      quiet: true,
+    });
+  });
+
+  it('throws ArgsError when summarize is missing --manifest', () => {
+    expect(() => parseArgs(['summarize'])).toThrow(/--manifest.*required/i);
+  });
+
+  it('rejects --config flag when used with summarize command', () => {
+    expect(() =>
+      parseArgs(['summarize', '--config', 'a.json', '--manifest', 'manifest.json']),
+    ).toThrow(/not valid for the summarize command/);
+  });
+
+  it('rejects --strict flag when used with non-summarize commands', () => {
+    expect(() => parseArgs(['batch', '--config', 'a.json', '--out', 'out', '--strict'])).toThrow(
+      /only valid for the summarize command/,
+    );
   });
 });
