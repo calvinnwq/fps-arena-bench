@@ -293,6 +293,23 @@ const errorCodeFromMessage = (message: string): string => {
   return 'match-error';
 };
 
+const manifestPathLabel = (batchOutDir: string, path: string): string => {
+  const relativePath = toRelative(batchOutDir, path);
+  return relativePath.startsWith('..') || isAbsolute(relativePath) ? basename(path) : relativePath;
+};
+
+const sanitizeErrorMessageForManifest = (
+  message: string,
+  batchOutDir: string,
+  paths: readonly string[],
+): string => {
+  let sanitized = message;
+  for (const path of [...paths].sort((a, b) => b.length - a.length)) {
+    sanitized = sanitized.split(path).join(manifestPathLabel(batchOutDir, path));
+  }
+  return sanitized;
+};
+
 export async function runBatchCommand(
   options: RunBatchCommandOptions,
 ): Promise<RunBatchCommandSummary> {
@@ -368,7 +385,14 @@ export async function runBatchCommand(
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      runError = { code: errorCodeFromMessage(message), message };
+      const sanitizedMessage = sanitizeErrorMessageForManifest(message, batchOutDir, [
+        planned.mapPath,
+        matchConfigPath,
+        matchOutDir,
+        replayPath,
+        resultPath,
+      ]);
+      runError = { code: errorCodeFromMessage(message), message: sanitizedMessage };
     }
 
     if (summary !== undefined && runError === undefined) {

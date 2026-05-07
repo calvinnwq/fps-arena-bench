@@ -194,6 +194,46 @@ describe('runBatchCommand', () => {
     }
   });
 
+  it('does not persist absolute paths from failed match errors', async () => {
+    const work = makeTempDir('error-paths');
+    try {
+      const mapPath = join(work, 'default-arena.json');
+      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<string, unknown>;
+      writeFileSync(mapPath, `${JSON.stringify(defaultMap, null, 2)}\n`, 'utf8');
+
+      const configPath = writeBatchConfig(
+        work,
+        buildSmokeBatch({
+          maps: [{ id: 'default-arena', version: '0.1.0', path: mapPath }],
+          spawnPermutations: [[0, 1]],
+        }),
+      );
+      const outDir = join(work, 'out');
+      const summary = await runBatchCommand({
+        configPath,
+        outDir,
+        onMatchStart: () => {
+          writeFileSync(
+            mapPath,
+            `${JSON.stringify({ ...defaultMap, version: '0.2.0' }, null, 2)}\n`,
+            'utf8',
+          );
+        },
+      });
+
+      const manifestText = readFileSync(summary.manifestPath, 'utf8');
+      const manifest = JSON.parse(manifestText) as BatchManifest;
+      expect(manifest.runs[0]?.status).toBe('failed');
+      expect(manifest.runs[0]?.error?.code).toBe('map-version-mismatch');
+      expect(manifest.runs[0]?.error?.message).toContain('default-arena.json');
+      expect(manifestText).not.toContain(work);
+      expect(manifestText).not.toContain(mapPath);
+      expect(manifestText).not.toContain(outDir);
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+  });
+
   it('truncates planned runs to runLimits.maxMatches', async () => {
     const work = makeTempDir('limit');
     try {
