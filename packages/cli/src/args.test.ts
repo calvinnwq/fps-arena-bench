@@ -61,6 +61,25 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['warp'])).toThrow(/warp/);
   });
 
+  it('parses doctor command with optional private diagnostics and quiet flags', () => {
+    expect(parseArgs(['doctor'])).toEqual({
+      command: 'doctor',
+      quiet: false,
+      includePrivateDiagnostics: false,
+    });
+    expect(parseArgs(['doctor', '--private', '--quiet'])).toEqual({
+      command: 'doctor',
+      quiet: true,
+      includePrivateDiagnostics: true,
+    });
+  });
+
+  it('rejects run/batch/summarize flags on doctor command', () => {
+    expect(() => parseArgs(['doctor', '--config', 'a.json'])).toThrow(
+      /not valid for the doctor command/,
+    );
+  });
+
   it('parses batch command with required flags', () => {
     expect(parseArgs(['batch', '--config', 'b.json', '--out', 'out'])).toEqual({
       command: 'batch',

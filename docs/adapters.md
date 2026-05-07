@@ -69,6 +69,20 @@ node packages/cli/dist/index.js run \
   --out replays/opencode-cli-vs-baseline
 ```
 
+## Adapter doctor and diagnostics
+
+Run the lightweight doctor after `pnpm build` when setting up local harnesses:
+
+```bash
+node packages/cli/dist/index.js doctor
+```
+
+The doctor checks baseline/mock built-ins plus the Claude, Codex, and OpenCode CLI harnesses. Public output is limited to installed/unavailable/misconfigured status, concise remediation, CLI registration flags, and timeout-budget notes. It does not run full benchmark matches, does not invoke model prompts, and ignores CLI probe output so raw prompts, raw model output, credentials, auth paths, absolute paths, and full environment values stay out of public-safe diagnostics and artifacts.
+
+Harness-specific packaged CLI registration is still explicit: set `FPS_ARENA_ENABLE_CLAUDE_CLI=1`, `FPS_ARENA_ENABLE_CODEX_CLI=1`, or `FPS_ARENA_ENABLE_OPENCODE_CLI=1` before `run`/`batch` when you want those adapters registered. Optional command and timeout variables (`FPS_ARENA_*_COMMAND`, `FPS_ARENA_*_TIMEOUT_MS`) affect both local runs and the doctor probe. Invalid timeout values are reported as misconfigured. `doctor --private` prints opt-in local troubleshooting details to the terminal; keep that output local.
+
+Doctor exit codes are stable for automation: `0` when all harness probes are installed/ready, `1` when any harness is unavailable or misconfigured, and `2` for CLI argument errors.
+
 Adapter privacy: safe replay artifacts never include raw prompts, raw model outputs, credentials, auth paths, local filesystem paths, or environment details. Adapter error messages are run through `redactString` before reaching consumers, and the Ollama adapter declares `kind: 'local'` so reliability counters (timeouts, fallbackActions, schemaFailures) reflect any classification path back into the result/replay summary.
 
 MVP harness adapters use a cold subprocess per action request. See [ADR 0001: Harness Process Model for MVP](adr/0001-harness-process-model.md) for the lifecycle contract, error taxonomy, cwd/env rules, and future migration path.

@@ -29,7 +29,18 @@ export interface ParsedHelpArgs {
   readonly command: 'help';
 }
 
-export type ParsedCommand = ParsedRunArgs | ParsedBatchArgs | ParsedSummarizeArgs | ParsedHelpArgs;
+export interface ParsedDoctorArgs {
+  readonly command: 'doctor';
+  readonly quiet: boolean;
+  readonly includePrivateDiagnostics: boolean;
+}
+
+export type ParsedCommand =
+  | ParsedRunArgs
+  | ParsedBatchArgs
+  | ParsedSummarizeArgs
+  | ParsedHelpArgs
+  | ParsedDoctorArgs;
 
 export class ArgsError extends Error {}
 
@@ -42,6 +53,7 @@ Usage:
                         [--snapshot-interval <ticks>] [--overwrite] [--quiet]
   fps-arena-bench summarize --manifest <path> [--out|--out-dir|-o <dir>]
                             [--strict] [--overwrite] [--quiet]
+  fps-arena-bench doctor [--private] [--quiet]
   fps-arena-bench help|--help|-h
 
 Examples:
@@ -57,6 +69,8 @@ Examples:
   fps-arena-bench summarize \\
     --manifest replays/batches/bot-batch/manifest.json \\
     -q
+  fps-arena-bench doctor
+  fps-arena-bench doctor --private
 `;
 
 export const helpText = (): string => HELP_TEXT;
@@ -86,6 +100,43 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
   const [command, ...rest] = argv;
   if (command === 'help' || command === '--help' || command === '-h') {
     return { command: 'help' };
+  }
+  if (command === 'doctor') {
+    let quiet = false;
+    let includePrivateDiagnostics = false;
+    for (let index = 0; index < rest.length; index += 1) {
+      const token = rest[index] ?? '';
+      switch (token) {
+        case '--quiet':
+        case '-q':
+          quiet = true;
+          break;
+        case '--private':
+          includePrivateDiagnostics = true;
+          break;
+        case '--config':
+        case '-c':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        case '--map':
+        case '-m':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        case '--out':
+        case '--out-dir':
+        case '-o':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        case '--overwrite':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        case '--strict':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        case '--manifest':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        case '--snapshot-interval':
+          throw new ArgsError(`Flag ${token} is not valid for the doctor command.`);
+        default:
+          throw new ArgsError(`Unknown argument "${token}". Run "fps-arena-bench help" for usage.`);
+      }
+    }
+    return { command: 'doctor', quiet, includePrivateDiagnostics };
   }
   if (command !== 'run' && command !== 'batch' && command !== 'summarize') {
     throw new ArgsError(`Unknown command "${command}". Run "fps-arena-bench help" for usage.`);
