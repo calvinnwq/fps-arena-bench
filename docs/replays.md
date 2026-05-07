@@ -2,7 +2,7 @@
 
 Safe replay artifacts are shareable by default. They should contain map/config snapshots, accepted actions, events, state hashes, snapshots where useful, reliability stats, and latency stats.
 
-The CLI writes `replay.safe.json` and `result.json` to the requested output directory. `result.json` is the replay artifact's `result` summary; `--snapshot-interval <ticks>` adds optional hash-only `snapshots` in addition to per-tick `stateHashes`.
+The `run` command writes `replay.safe.json` and `result.json` to the requested output directory. The `batch` command writes `<outDir>/<batchId>/manifest.json` plus per-match `matches/<matchId>/{config.json,replay.safe.json,result.json}` artifacts. `result.json` is the replay artifact's `result` summary; `--snapshot-interval <ticks>` adds optional hash-only `snapshots` to single-match and per-batch-match replays in addition to per-tick `stateHashes`.
 
 Safe replay artifacts use `schemaVersion` `fps-arena-bench.schema.v0.1` with non-empty `matchId`, embedded `config`, embedded `map`, `acceptedActions`, `events`, `stateHashes`, optional hash-only `snapshots`, and `result`. Accepted actions contain nonnegative integer `tick`, configured `contenderId`, schema-valid `action`, and nonnegative `latencyMs`; events contain nonnegative integer `tick`, non-empty `type`, optional configured non-empty `contenderId`, and optional strict `details`; state hashes and snapshots contain nonnegative integer `tick` and `sha256:<64 lowercase hex digest>` `hash`. The replay `matchId` must match the result, the config map id/version must match the embedded map, every configured contender needs a spawn slot, and accepted actions, events, placements, winners, and stats must reference configured contenders.
 
