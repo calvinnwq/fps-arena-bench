@@ -198,7 +198,10 @@ describe('runBatchCommand', () => {
     const work = makeTempDir('error-paths');
     try {
       const mapPath = join(work, 'default-arena.json');
-      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<string, unknown>;
+      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<
+        string,
+        unknown
+      >;
       writeFileSync(mapPath, `${JSON.stringify(defaultMap, null, 2)}\n`, 'utf8');
 
       const configPath = writeBatchConfig(
@@ -260,10 +263,17 @@ describe('runBatchCommand', () => {
   it('does not plan runs past runLimits.maxMatches', async () => {
     const work = makeTempDir('limit-plan');
     try {
-      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<string, unknown>;
+      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<
+        string,
+        unknown
+      >;
       const mapAPath = join(work, 'map-a.json');
       const mapBPath = join(work, 'map-b.json');
-      writeFileSync(mapAPath, `${JSON.stringify({ ...defaultMap, id: 'b__c' }, null, 2)}\n`, 'utf8');
+      writeFileSync(
+        mapAPath,
+        `${JSON.stringify({ ...defaultMap, id: 'b__c' }, null, 2)}\n`,
+        'utf8',
+      );
       writeFileSync(mapBPath, `${JSON.stringify({ ...defaultMap, id: 'b' }, null, 2)}\n`, 'utf8');
 
       const configPath = writeBatchConfig(
@@ -293,10 +303,17 @@ describe('runBatchCommand', () => {
   it('rejects duplicate generated match ids', async () => {
     const work = makeTempDir('duplicate-match-id');
     try {
-      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<string, unknown>;
+      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<
+        string,
+        unknown
+      >;
       const mapAPath = join(work, 'map-a.json');
       const mapBPath = join(work, 'map-b.json');
-      writeFileSync(mapAPath, `${JSON.stringify({ ...defaultMap, id: 'b__c' }, null, 2)}\n`, 'utf8');
+      writeFileSync(
+        mapAPath,
+        `${JSON.stringify({ ...defaultMap, id: 'b__c' }, null, 2)}\n`,
+        'utf8',
+      );
       writeFileSync(mapBPath, `${JSON.stringify({ ...defaultMap, id: 'b' }, null, 2)}\n`, 'utf8');
 
       const configPath = writeBatchConfig(
