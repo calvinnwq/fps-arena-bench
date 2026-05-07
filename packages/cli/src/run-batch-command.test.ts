@@ -65,6 +65,8 @@ describe('runBatchCommand', () => {
       const manifest = JSON.parse(readFileSync(summary.manifestPath, 'utf8')) as BatchManifest;
       expect(manifest.schemaVersion).toBe(BATCH_CONFIG_SCHEMA_VERSION);
       expect(manifest.batchId).toBe('smoke-batch');
+      expect(manifest.batchConfig.maps[0]?.path).toBe('default-arena.json');
+      expect(manifest.batchConfig.maps[0]?.path.startsWith('/')).toBe(false);
       expect(manifest.runs.map((run) => run.matchId)).toEqual([
         'smoke-batch__default-arena__random-vs-chaser__p0__s7',
         'smoke-batch__default-arena__random-vs-chaser__p1__s7',
@@ -282,6 +284,19 @@ describe('runBatchCommand', () => {
       const configPath = writeBatchConfig(work, buildSmokeBatch({ id: 'unsafe id/with slash' }));
       const outDir = join(work, 'out');
       await expect(runBatchCommand({ configPath, outDir })).rejects.toThrow(/Invalid batch id/);
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects reserved path components in batch ids', async () => {
+    const work = makeTempDir('reserved-id');
+    try {
+      for (const id of ['.', '..']) {
+        const configPath = writeBatchConfig(work, buildSmokeBatch({ id }));
+        const outDir = join(work, 'out');
+        await expect(runBatchCommand({ configPath, outDir })).rejects.toThrow(/Invalid batch id/);
+      }
     } finally {
       rmSync(work, { recursive: true, force: true });
     }

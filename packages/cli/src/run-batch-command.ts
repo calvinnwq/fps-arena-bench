@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import {
   BATCH_CONFIG_SCHEMA_VERSION,
@@ -141,12 +141,20 @@ interface PlannedMatch {
 }
 
 const ensureSafeIdComponent = (label: string, value: string): void => {
-  if (!MATCH_ID_SAFE.test(value)) {
+  if (!MATCH_ID_SAFE.test(value) || value === '.' || value === '..') {
     throw new Error(
       `Invalid ${label} "${value}": only ASCII letters, digits, underscore, hyphen, and period are allowed for batch identifiers.`,
     );
   }
 };
+
+const sanitizeBatchConfigForManifest = (batch: BatchConfig): BatchConfig => ({
+  ...batch,
+  maps: batch.maps.map((map) => ({
+    ...map,
+    path: isAbsolute(map.path) ? basename(map.path) : map.path,
+  })),
+});
 
 const buildMatchId = (
   batchId: string,
@@ -416,7 +424,7 @@ export async function runBatchCommand(
     matchSchemaVersion: SCHEMA_VERSION,
     batchId: batch.id,
     rulesetVersion: batch.rulesetVersion,
-    batchConfig: batch,
+    batchConfig: sanitizeBatchConfigForManifest(batch),
     summary: {
       totalRuns: matches.length,
       completedRuns,
