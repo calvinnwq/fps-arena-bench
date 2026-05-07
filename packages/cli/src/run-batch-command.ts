@@ -205,12 +205,18 @@ const planMatches = (
 
   const contenderIndex = new Map(batch.contenders.map((entry) => [entry.id, entry]));
   const matches: PlannedMatch[] = [];
+  const matchIds = new Set<string>();
+  const limit = batch.runLimits?.maxMatches;
   for (const mapEntry of batch.maps) {
     const mapPath = resolvedMapPaths.get(mapEntry.id)!;
     const mapHash = mapHashes.get(mapEntry.id)!;
     for (const matchup of batch.matchups) {
       for (const [permIndex, permutation] of batch.spawnPermutations.entries()) {
         for (const seed of batch.seeds) {
+          if (limit !== undefined && matches.length >= limit) {
+            return { matches, mapHashes };
+          }
+
           const orderedContenders = permutation.map((slot) => {
             const contenderId = matchup.contenderIds[slot];
             if (contenderId === undefined) {
@@ -227,8 +233,14 @@ const planMatches = (
             return contender;
           });
 
+          const matchId = buildMatchId(batch.id, mapEntry.id, matchup.id, permIndex, seed);
+          if (matchIds.has(matchId)) {
+            throw new Error(`Duplicate generated match id "${matchId}" in batch "${batch.id}".`);
+          }
+          matchIds.add(matchId);
+
           matches.push({
-            matchId: buildMatchId(batch.id, mapEntry.id, matchup.id, permIndex, seed),
+            matchId,
             mapId: mapEntry.id,
             mapVersion: mapEntry.version,
             mapPath,
@@ -245,11 +257,6 @@ const planMatches = (
         }
       }
     }
-  }
-
-  const limit = batch.runLimits?.maxMatches;
-  if (limit !== undefined && limit < matches.length) {
-    matches.splice(limit);
   }
 
   return { matches, mapHashes };

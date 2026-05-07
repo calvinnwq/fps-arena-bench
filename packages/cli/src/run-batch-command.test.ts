@@ -217,6 +217,71 @@ describe('runBatchCommand', () => {
     }
   });
 
+  it('does not plan runs past runLimits.maxMatches', async () => {
+    const work = makeTempDir('limit-plan');
+    try {
+      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<string, unknown>;
+      const mapAPath = join(work, 'map-a.json');
+      const mapBPath = join(work, 'map-b.json');
+      writeFileSync(mapAPath, `${JSON.stringify({ ...defaultMap, id: 'b__c' }, null, 2)}\n`, 'utf8');
+      writeFileSync(mapBPath, `${JSON.stringify({ ...defaultMap, id: 'b' }, null, 2)}\n`, 'utf8');
+
+      const configPath = writeBatchConfig(
+        work,
+        buildSmokeBatch({
+          maps: [
+            { id: 'b__c', version: '0.1.0', path: mapAPath },
+            { id: 'b', version: '0.1.0', path: mapBPath },
+          ],
+          matchups: [
+            { id: 'd', contenderIds: ['alpha', 'bravo'] },
+            { id: 'c__d', contenderIds: ['alpha', 'bravo'] },
+          ],
+          spawnPermutations: [[0, 1]],
+          runLimits: { maxMatches: 1 },
+        }),
+      );
+      const outDir = join(work, 'out');
+      const summary = await runBatchCommand({ configPath, outDir });
+      expect(summary.totalRuns).toBe(1);
+      expect(summary.completedRuns).toBe(1);
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects duplicate generated match ids', async () => {
+    const work = makeTempDir('duplicate-match-id');
+    try {
+      const defaultMap = JSON.parse(readFileSync(defaultMapPath, 'utf8')) as Record<string, unknown>;
+      const mapAPath = join(work, 'map-a.json');
+      const mapBPath = join(work, 'map-b.json');
+      writeFileSync(mapAPath, `${JSON.stringify({ ...defaultMap, id: 'b__c' }, null, 2)}\n`, 'utf8');
+      writeFileSync(mapBPath, `${JSON.stringify({ ...defaultMap, id: 'b' }, null, 2)}\n`, 'utf8');
+
+      const configPath = writeBatchConfig(
+        work,
+        buildSmokeBatch({
+          maps: [
+            { id: 'b__c', version: '0.1.0', path: mapAPath },
+            { id: 'b', version: '0.1.0', path: mapBPath },
+          ],
+          matchups: [
+            { id: 'd', contenderIds: ['alpha', 'bravo'] },
+            { id: 'c__d', contenderIds: ['alpha', 'bravo'] },
+          ],
+          spawnPermutations: [[0, 1]],
+        }),
+      );
+      const outDir = join(work, 'out');
+      await expect(runBatchCommand({ configPath, outDir })).rejects.toThrow(
+        /Duplicate generated match id/i,
+      );
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a batch config with a map id that mismatches the loaded map file', async () => {
     const work = makeTempDir('map-id');
     try {
