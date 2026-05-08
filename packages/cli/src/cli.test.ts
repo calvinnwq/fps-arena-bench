@@ -87,6 +87,47 @@ describe('runCli', () => {
     expect(stderr).toMatch(/Usage:/);
   });
 
+  it('runs doctor with fake harness CLIs and separates private diagnostics behind --private', async () => {
+    const tmpRoot = mkdtempSync(join(tmpdir(), 'fps-cli-doctor-'));
+    const fakeBinDir = join(tmpRoot, 'bin');
+    const previousPath = process.env.PATH;
+    try {
+      mkdirSync(fakeBinDir, { recursive: true });
+      for (const command of ['claude', 'codex', 'opencode']) {
+        const commandPath = join(fakeBinDir, command);
+        writeFileSync(
+          commandPath,
+          ['#!/bin/sh', `printf '%s\\n' '${command} 1.0.0'`, ''].join('\n'),
+        );
+        chmodSync(commandPath, 0o755);
+      }
+      process.env.PATH = `${fakeBinDir}${process.platform === 'win32' ? ';' : ':'}${
+        previousPath ?? ''
+      }`;
+
+      const publicRun = captureStreams();
+      const publicCode = await runCli(['doctor'], publicRun.io);
+      expect(publicCode).toBe(0);
+      expect(publicRun.stdoutChunks.join('')).toMatch(/claude-cli: installed/);
+      expect(publicRun.stdoutChunks.join('')).not.toMatch(/private diagnostics/);
+
+      const privateRun = captureStreams();
+      const privateCode = await runCli(['doctor', '--private'], privateRun.io);
+      expect(privateCode).toBe(0);
+      expect(privateRun.stdoutChunks.join('')).toMatch(/private diagnostics/);
+    } finally {
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+      rmSync(tmpRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('suppresses doctor stdout when --quiet is set', async () => {
+    const { io, stdoutChunks } = captureStreams();
+    await runCli(['doctor', '--quiet'], io);
+    expect(stdoutChunks.join('')).toBe('');
+  });
+
   it('runs the mock-duel example end-to-end and writes valid replay/result files', async () => {
     const outDir = mkdtempSync(join(tmpdir(), 'fps-cli-mock-'));
     const { io, stdoutChunks } = captureStreams();

@@ -25,3 +25,20 @@ Eliminations award one kill and one score point to the last non-self shooter. Ma
 Batch configs (see [configs.md](./configs.md#batch-configs)) drive a deterministic matrix of `seeds × maps × matchups × spawnPermutations`. The runner expands the matrix in declared order, synthesizes one `MatchConfigSchema`-valid match config per cell, and writes the per-match `replay.safe.json`/`result.json` next to a `manifest.json` recording the batch config snapshot, ordered runs, and per-run terminal status. Match ids are derived from the batch id, map id, matchup id, spawn permutation index, and seed so the same batch config produces the same plan on every run. Spawn permutations exist to spread positional advantage across matchups; pair `[0,1]` with `[1,0]` (or any full set of permutations of `[0..n-1]`) to balance spawn assignments before drawing tactical conclusions.
 
 Failures are recorded as `{status: 'failed', error: {code, message}}` rows in the manifest. With `failurePolicy.onMatchFailure: continue` the runner moves on and successful artifacts written before or after the failure remain untouched. With `onMatchFailure: stop` remaining planned matches are recorded as `skipped` rows so the manifest still describes the full plan. Batch outputs are local-only and contain no raw prompts, raw model outputs, credentials, auth paths, absolute paths, or environment details; only relative artifact paths are persisted.
+
+## v0.2 Methodology Notes
+
+These fields must be reported alongside any shared batch results for fair comparison:
+
+- **Prompt/schema version**: `ACTION_PROMPT_TEMPLATE_VERSION` from `@fps-arena-bench/contracts` (currently `action-prompt.v0.1`) and `SCHEMA_VERSION` from `@fps-arena-bench/schemas` (currently `fps-arena-bench.schema.v0.1`). Results across different prompt or schema versions are not directly comparable.
+- **Ruleset version**: `ruleset.v0.1` (see above). Engine changes invalidate comparisons.
+- **Adapter ids**: The `adapterId` and `displayName` from each contender's `AdapterMetadata`. Include CLI tool version where available (e.g. `claude --version` output).
+- **Model/CLI settings**: Any non-default `command`, `args`, `requestTimeoutMs`, or `envAllowlist` values passed to harness adapters.
+- **Timeout budget**: `requestTimeoutMs` per adapter (default 60 000 ms). Comparisons between different timeout budgets are not meaningful.
+- **Fallback policy**: Whether a `fallbackAction` was configured. Fallback actions may mask reliability differences.
+- **Seed suite**: The exact `seeds` array from the batch config. Small seed suites have high variance.
+- **Spawn permutations**: The exact `spawnPermutations` array from the batch config. Without balancing spawn assignments, positional advantage skews tactical outcomes.
+- **Hardware / local-run caveats**: Harness adapters invoke local CLI subprocesses. Latency metrics reflect the local machine and concurrent load, not model-intrinsic speed.
+- **No composite score**: FPS Arena Bench does not produce a composite ranking or leaderboard score. The project is a diagnostic/watchable benchmark, not an authoritative evaluation.
+
+Public artifacts (replays, results, aggregates) produced by this tool contain no raw prompts, raw model outputs, credentials, auth paths, absolute paths, or full environment variable values.

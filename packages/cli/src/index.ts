@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 
 import { aggregateBatch, type AggregateBatchResult } from './aggregate-batch.js';
 import { ArgsError, helpText, parseArgs } from './args.js';
+import { createNodeCommandChecker, runDoctor } from './doctor.js';
 import { buildEnvProviderOverrides } from './env-provider-overrides.js';
 import { createBuiltinRegistry } from './registry.js';
 import {
@@ -50,7 +51,20 @@ export type {
   ParsedBatchArgs,
   ParsedSummarizeArgs,
   ParsedHelpArgs,
+  ParsedDoctorArgs,
 } from './args.js';
+export { runDoctor, createNodeCommandChecker, DOCTOR_ADAPTER_SPECS } from './doctor.js';
+export type {
+  DoctorResult,
+  DoctorAdapterEntry,
+  DoctorStatus,
+  DoctorAdapterSpec,
+  CommandAvailabilityChecker,
+  CommandCheckResult,
+  CommandCheckStatus,
+  CreateNodeCommandCheckerOptions,
+  RunDoctorOptions,
+} from './doctor.js';
 export { buildEnvProviderOverrides } from './env-provider-overrides.js';
 export type { EnvProviderOverrides } from './env-provider-overrides.js';
 export { BUILTIN_ADAPTER_IDS, createBuiltinRegistry } from './registry.js';
@@ -156,6 +170,40 @@ export async function runCli(
         io.stdout.write(formatAggregateSummary(result, jsonPath, csvPath));
       }
       return result.summary.runCounts.resultsMissing > 0 ? 1 : 0;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      io.stderr.write(`fps-arena-bench: ${message}\n`);
+      return 1;
+    }
+  }
+
+  if (parsed.command === 'doctor') {
+    try {
+      const result = await runDoctor({
+        checkCommand: createNodeCommandChecker(),
+        includePrivateDiagnostics: parsed.includePrivateDiagnostics,
+      });
+      if (!parsed.quiet) {
+        for (const entry of result.adapters) {
+          io.stdout.write(`  ${entry.adapterId}: ${entry.status}\n`);
+          io.stdout.write(`    ${entry.reason}\n`);
+          for (const detail of entry.publicDiagnostics) {
+            io.stdout.write(`    - ${detail}\n`);
+          }
+          if (parsed.includePrivateDiagnostics && entry.privateDiagnostics !== undefined) {
+            io.stdout.write('    private diagnostics:\n');
+            for (const detail of entry.privateDiagnostics) {
+              io.stdout.write(`      - ${detail}\n`);
+            }
+          }
+        }
+        if (result.allReady) {
+          io.stdout.write('doctor: all harness adapters ready\n');
+        } else {
+          io.stdout.write('doctor: one or more harness adapters unavailable or misconfigured\n');
+        }
+      }
+      return result.allReady ? 0 : 1;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       io.stderr.write(`fps-arena-bench: ${message}\n`);
