@@ -109,7 +109,7 @@ A lightweight adapter doctor can check built-in adapters and local CLI harness p
 node packages/cli/dist/index.js doctor
 ```
 
-`doctor` prints public-safe installed/unavailable/misconfigured status for baseline/mock, Claude CLI, Codex CLI, and OpenCode CLI adapters. It never captures raw prompts, raw model output, credentials, auth paths, absolute paths, or full environment values; use `--private` only when you explicitly want local troubleshooting details printed to your terminal. Exit code is `0` when all harness command probes are ready, `1` when any harness is unavailable/misconfigured, and `2` for argument errors.
+`doctor` prints public-safe installed/unavailable/misconfigured status for baseline/mock, Claude CLI, Codex CLI, and OpenCode CLI adapters, and accepts `--quiet`/`-q` to suppress stdout. It never captures raw prompts, raw model output, credentials, auth paths, absolute paths, or full environment values; use `--private` only when you explicitly want local troubleshooting details printed to your terminal. Exit code is `0` when all harness command probes are ready, `1` when any harness is unavailable/misconfigured, and `2` for argument errors.
 
 The generated `replay.safe.json` can be opened in the local top-down web replay viewer at `apps/web`. After `pnpm build`, open `apps/web/index.html` in a modern browser (or serve `apps/web` over a simple local HTTP server) and use the file picker to load the artifact. See [docs/web-viewer.md](docs/web-viewer.md) for the full flow, controls, error handling, and privacy guarantees.
 
