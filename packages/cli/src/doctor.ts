@@ -163,8 +163,8 @@ export function createNodeCommandChecker(
         }
       });
 
-      child.on('close', () => {
-        settle({ status: 'found' });
+      child.on('close', (code, signal) => {
+        settle({ status: code === 0 && signal === null ? 'found' : 'failed' });
       });
     });
   };

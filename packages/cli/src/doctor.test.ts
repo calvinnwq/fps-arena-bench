@@ -6,6 +6,7 @@ import {
   DOCTOR_ADAPTER_SPECS,
   type CommandCheckResult,
   type CommandAvailabilityChecker,
+  createNodeCommandChecker,
   runDoctor,
 } from './doctor.js';
 
@@ -25,6 +26,14 @@ const harnessEntriesFor = (result: Awaited<ReturnType<typeof runDoctor>>) =>
   result.adapters.filter((_, i) => DOCTOR_ADAPTER_SPECS[i]?.kind === 'harness');
 
 describe('runDoctor', () => {
+  it('classifies non-zero version probes as failed', async () => {
+    const checker = createNodeCommandChecker({ probeTimeoutMs: 1_000 });
+
+    await expect(checker(process.execPath, ['-e', 'process.exit(7)'])).resolves.toEqual({
+      status: 'failed',
+    });
+  });
+
   it('all harness entries are installed and allReady is true when checker finds all commands', async () => {
     const result = await runDoctor({ checkCommand: allFoundChecker, getEnv: emptyEnv });
     for (const entry of harnessEntriesFor(result)) {
